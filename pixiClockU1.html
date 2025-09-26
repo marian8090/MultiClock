@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script src="https://pixijs.download/release/pixi.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <script>
+        (async () => {
+            const app = new PIXI.Application();
+
+            await app.init({
+                antialias: true,
+                autoDensity: true,
+                resolution: 2,
+                background: '#000000',
+                resizeTo: window,
+            });
+            document.body.appendChild(app.canvas);
+
+            // Set the desired minimum FPS
+            //app.ticker.minFPS = 8; // Set to 30 FPS
+            app.ticker.maxFPS = 8; // equals 28.800 automatic watch
+
+            const clockX = 0.5 * app.screen.width; // clock midpoint position X
+            const clockY = 0.5 * app.screen.height; // clock  midpoint position Y
+            const ro = Math.min(app.screen.width, app.screen.height) * 0.45; // watchFace refs outer radius
+            const ri = ro - 50; // watchFace refs inner radius
+            const color = 0xFFFFFF;
+
+            // Create a new Date object
+            var t = new Date();
+
+            // Watch face
+            const watch = new PIXI.Container();
+
+            for (hour = 0; hour <= 12; hour += 1) {  // HOUR refs
+                const hourRef = new PIXI.Graphics();
+                hourRef.beginFill(color);
+                if (hour % 3 == 0) {  // 3 6 9 12 hours
+                    var w = 0.11 * ro; // Ref width
+                    var h = 0.14 * ro; // Ref height
+                } else {  // 1 2 4 5 7 8 10 11
+                    var w = 0.11 * ro; // Ref width
+                    var h = 0.07 * ro; // Ref height
+                }
+                hourRef.x = clockX + 0.80 * ro * Math.sin(hour * 30 / 180 * Math.PI);
+                hourRef.y = clockY - 0.80 * ro * Math.cos(hour * 30 / 180 * Math.PI);
+                hourRef.drawRect(-w / 2, 0, w, h);
+                if (hour == 0) {
+                    hourRef.drawRect(-w / 2, 1.1 * h, w, 0.35 * h); // extra block at 12:00
+                }
+                hourRef.endFill();
+                hourRef.rotation = hour * 30 / 180 * Math.PI;
+                watch.addChild(hourRef);
+            }
+
+            for (minute = 0; minute <= 60; minute += 1) {  // MINUTE refs
+                const minuteRef = new PIXI.Graphics();
+                minuteRef.beginFill(color);
+                if (minute % 5 == 0) {  // at hour refs
+                    var w = 0.03 * ro; // Ref width
+                    var h = 0.04 * ro; // Ref height
+                } else {  // other minute refs
+                    var w = 0.02 * ro; // Ref width
+                    var h = 0.04 * ro; // Ref height
+                }
+                minuteRef.x = clockX + 0.8 * ro * Math.sin(minute * 6 / 180 * Math.PI);
+                minuteRef.y = clockY - 0.8 * ro * Math.cos(minute * 6 / 180 * Math.PI);
+                minuteRef.drawRect(-w / 2, -h, w, h)
+                minuteRef.endFill();
+                minuteRef.rotation = minute * 6 / 180 * Math.PI;
+                watch.addChild(minuteRef);
+            }
+
+            // Date Text
+            const dayTextStyle = new PIXI.TextStyle({
+                fill: color,
+                fontFamily: "\"Courier New\", Courier, monospace",
+                fontSize: 0.12 * ro,
+                fontWeight: "bold"
+            })
+            const dayText = new PIXI.Text('--', dayTextStyle);
+            dayText.x = clockX + 0.46 * ro;
+            dayText.y = clockY - 0.5 * 0.11 * ro;
+            watch.addChild(dayText)
+
+            // Hands
+            boderLineWidth = .002 * ro; // minimal black border line
+
+            // Hour Hand
+            var w1 = 0.11 * ro; // Ref width
+            var w2 = 0.03 * ro; // Ref width tip
+            var h1 = 0.45 * ro; // Ref height
+            var h2 = (0.45 + 0.07) * ro; // Ref height tip
+            var hRed = 0.24 * ro; // Red color height
+            const hourHand = new PIXI.Graphics();
+            hourHand.x = clockX;
+            hourHand.y = clockY;
+            hourHand.beginFill(color); // normal color
+            hourHand.lineStyle(boderLineWidth, 0x000000); // minimal black border line
+            hourHand.moveTo(w1 / 2, 0);
+            hourHand.lineTo(w1 / 2, -h1);
+            hourHand.lineTo(w2 / 2, -h1);
+            hourHand.lineTo(w2 / 2, -h2);
+            hourHand.lineTo(-w2 / 2, -h2);
+            hourHand.lineTo(-w2 / 2, -h1);
+            hourHand.lineTo(-w1 / 2, -h1);
+            hourHand.lineTo(-w1 / 2, 0);
+            hourHand.lineTo(w1 / 2, 0);
+            hourHand.closePath();
+            hourHand.endFill();
+            hourHand.beginFill(0xFF0000); // red color
+            hourHand.lineStyle(0, 0x000000); // no border line
+            hourHand.moveTo(w1 / 2, 0);
+            hourHand.lineTo(w1 / 2, -hRed);
+            hourHand.lineTo(-w1 / 2, -hRed);
+            hourHand.lineTo(-w1 / 2, 0);
+            hourHand.lineTo(w1 / 2, 0);
+            hourHand.drawCircle(0, 0, w1 / 2);
+            hourHand.closePath();
+            hourHand.endFill();
+            watch.addChild(hourHand);
+
+            // Minute Hand
+            var w1 = 0.11 * ro; // Ref width
+            var w2 = 0.03 * ro; // Ref width tip
+            var h1 = 0.73 * ro; // Ref height
+            var h2 = (0.73 + 0.07) * ro; // Ref height tip
+            var hRed = 0.12 * ro; // Red color height
+            const minuteHand = new PIXI.Graphics();
+            minuteHand.x = clockX;
+            minuteHand.y = clockY;
+            minuteHand.beginFill(color); // normal color
+            minuteHand.lineStyle(boderLineWidth, 0x000000); // minimal black border line
+            minuteHand.moveTo(w1 / 2, 0);
+            minuteHand.lineTo(w1 / 2, -h1);
+            minuteHand.lineTo(w2 / 2, -h1);
+            minuteHand.lineTo(w2 / 2, -h2);
+            minuteHand.lineTo(-w2 / 2, -h2);
+            minuteHand.lineTo(-w2 / 2, -h1);
+            minuteHand.lineTo(-w1 / 2, -h1);
+            minuteHand.lineTo(-w1 / 2, 0);
+            minuteHand.lineTo(w1 / 2, 0);
+            minuteHand.closePath();
+            minuteHand.endFill();
+            minuteHand.beginFill(0xFF0000); // red color
+            minuteHand.lineStyle(0, 0x000000); // no border line
+            minuteHand.moveTo(w1 / 2, 0);
+            minuteHand.lineTo(w1 / 2, -hRed);
+            minuteHand.lineTo(-w1 / 2, -hRed);
+            minuteHand.lineTo(-w1 / 2, 0);
+            minuteHand.lineTo(w1 / 2, 0);
+            minuteHand.drawCircle(0, 0, w1 / 2);
+            minuteHand.closePath();
+            minuteHand.endFill();
+            watch.addChild(minuteHand);
+
+
+            // Seconds Hand
+            const secondHand = new PIXI.Graphics();
+            secondHand.x = clockX;
+            secondHand.y = clockY;
+            secondHand.lineStyle(boderLineWidth, 0x000000); // minimal black border line
+            secondHand.beginFill(0xFF0000); // red color
+            secondHand.drawRect(-0.015 * ro, -0.15 * ro, 0.03 * ro, 0.69 * ro);
+            secondHand.drawCircle(0, 0, w1 * 0.4);
+            secondHand.drawCircle(0, 0, w1 * 0.1);
+            secondHand.beginFill(0xFFFFFF); // white color
+            secondHand.drawRect(-0.015 * ro, 0.54 * ro, 0.03 * ro, 0.08 * ro);
+            secondHand.beginFill(0xFF0000); // red color
+            secondHand.drawRect(-0.055 * ro, 0.62 * ro, 0.11 * ro, 0.11 * ro);
+            secondHand.beginFill(0xFFFFFF); // white color
+            secondHand.drawRect(-0.015 * ro, 0.73 * ro, 0.03 * ro, 0.08 * ro);
+            secondHand.closePath();
+            secondHand.endFill();
+            watch.addChild(secondHand);
+
+            // BRING WATCH TO STAGE
+            app.stage.addChild(watch);
+
+            //LISTEN FOR ANIMATE UPDATE
+            app.ticker.add((delta) => {
+                t = new Date(); // update current time
+
+                dayText.text = t.getDate();
+                secondHand.rotation = (t.getSeconds() + t.getMilliseconds() / 1000) / 60 * 2 * Math.PI + 1 * Math.PI;
+                minuteHand.rotation = (t.getMinutes() + t.getSeconds() / 60 + t.getMilliseconds() / 1000 / 60) / 30 * Math.PI;
+                hourHand.rotation = (t.getHours() + t.getMinutes() / 60 + t.getSeconds() / 3600 + t.getMilliseconds() / 3600000) * 30 / 180 * Math.PI;
+                //hourHand.rotation = currentTime.getHours() / 6 * Math.PI + currentTime.getMinutes() / 30 * Math.PI / 12 + currentTime.getSeconds() / 30 * Math.PI / 60 / 12;
+
+            });
+        })();
+    </script>
+</body>
+
+</html>
