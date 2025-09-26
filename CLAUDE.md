@@ -21,12 +21,14 @@ The clock application uses:
 - **Clock Hands**: Hour, minute, and second hands with different styling and red accents
 - **Date Display**: Shows current day of month positioned at 3 o'clock
 - **Animation Loop**: Uses PIXI ticker at 8 FPS to update hand positions based on current time
+- **Responsive Design**: Automatic resizing when window dimensions change (including fullscreen F11)
 
 ### Coordinate System
 
 - Clock center: `(0.5 * screen.width, 0.5 * screen.height)`
-- Outer radius: `Math.min(screen.width, screen.height) * 0.45`
+- Outer radius: `Math.min(screen.width, screen.height) * 0.48`
 - All dimensions are proportional to the outer radius for responsive scaling
+- Window resize triggers complete clock rebuild with new dimensions
 
 ## Development
 

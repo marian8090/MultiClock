@@ -36,7 +36,7 @@
 
             const clockX = 0.5 * app.screen.width; // clock midpoint position X
             const clockY = 0.5 * app.screen.height; // clock  midpoint position Y
-            const ro = Math.min(app.screen.width, app.screen.height) * 0.45; // watchFace refs outer radius
+            const ro = Math.min(app.screen.width, app.screen.height) * 0.48; // watchFace refs outer radius
             const ri = ro - 50; // watchFace refs inner radius
             const color = 0xFFFFFF;
 
@@ -187,6 +187,166 @@
             secondHand.closePath();
             secondHand.endFill();
             watch.addChild(secondHand);
+
+            // Function to rebuild clock with new dimensions
+            function rebuildClock() {
+                // Clear existing clock
+                watch.removeChildren();
+
+                // Recalculate dimensions
+                const newClockX = 0.5 * app.screen.width;
+                const newClockY = 0.5 * app.screen.height;
+                const newRo = Math.min(app.screen.width, app.screen.height) * 0.48;
+                const newColor = 0xFFFFFF;
+
+                // Rebuild hour markers
+                for (let hour = 0; hour <= 12; hour += 1) {
+                    const hourRef = new PIXI.Graphics();
+                    hourRef.beginFill(newColor);
+                    if (hour % 3 == 0) {
+                        var w = 0.11 * newRo;
+                        var h = 0.14 * newRo;
+                    } else {
+                        var w = 0.11 * newRo;
+                        var h = 0.07 * newRo;
+                    }
+                    hourRef.x = newClockX + 0.80 * newRo * Math.sin(hour * 30 / 180 * Math.PI);
+                    hourRef.y = newClockY - 0.80 * newRo * Math.cos(hour * 30 / 180 * Math.PI);
+                    hourRef.drawRect(-w / 2, 0, w, h);
+                    if (hour == 0) {
+                        hourRef.drawRect(-w / 2, 1.1 * h, w, 0.35 * h);
+                    }
+                    hourRef.endFill();
+                    hourRef.rotation = hour * 30 / 180 * Math.PI;
+                    watch.addChild(hourRef);
+                }
+
+                // Rebuild minute markers
+                for (let minute = 0; minute <= 60; minute += 1) {
+                    const minuteRef = new PIXI.Graphics();
+                    minuteRef.beginFill(newColor);
+                    if (minute % 5 == 0) {
+                        var w = 0.03 * newRo;
+                        var h = 0.04 * newRo;
+                    } else {
+                        var w = 0.02 * newRo;
+                        var h = 0.04 * newRo;
+                    }
+                    minuteRef.x = newClockX + 0.8 * newRo * Math.sin(minute * 6 / 180 * Math.PI);
+                    minuteRef.y = newClockY - 0.8 * newRo * Math.cos(minute * 6 / 180 * Math.PI);
+                    minuteRef.drawRect(-w / 2, -h, w, h);
+                    minuteRef.endFill();
+                    minuteRef.rotation = minute * 6 / 180 * Math.PI;
+                    watch.addChild(minuteRef);
+                }
+
+                // Rebuild date text
+                const newDayTextStyle = new PIXI.TextStyle({
+                    fill: newColor,
+                    fontFamily: "\"Courier New\", Courier, monospace",
+                    fontSize: 0.12 * newRo,
+                    fontWeight: "bold"
+                });
+                dayText.style = newDayTextStyle;
+                dayText.x = newClockX + 0.46 * newRo;
+                dayText.y = newClockY - 0.5 * 0.11 * newRo;
+                watch.addChild(dayText);
+
+                // Rebuild hands with new dimensions
+                const newBorderLineWidth = 0.002 * newRo;
+
+                // Rebuild hour hand
+                hourHand.clear();
+                var w1 = 0.11 * newRo;
+                var w2 = 0.03 * newRo;
+                var h1 = 0.45 * newRo;
+                var h2 = (0.45 + 0.07) * newRo;
+                var hRed = 0.24 * newRo;
+                hourHand.x = newClockX;
+                hourHand.y = newClockY;
+                hourHand.beginFill(newColor);
+                hourHand.lineStyle(newBorderLineWidth, 0x000000);
+                hourHand.moveTo(w1 / 2, 0);
+                hourHand.lineTo(w1 / 2, -h1);
+                hourHand.lineTo(w2 / 2, -h1);
+                hourHand.lineTo(w2 / 2, -h2);
+                hourHand.lineTo(-w2 / 2, -h2);
+                hourHand.lineTo(-w2 / 2, -h1);
+                hourHand.lineTo(-w1 / 2, -h1);
+                hourHand.lineTo(-w1 / 2, 0);
+                hourHand.lineTo(w1 / 2, 0);
+                hourHand.closePath();
+                hourHand.endFill();
+                hourHand.beginFill(0xFF0000);
+                hourHand.lineStyle(0, 0x000000);
+                hourHand.moveTo(w1 / 2, 0);
+                hourHand.lineTo(w1 / 2, -hRed);
+                hourHand.lineTo(-w1 / 2, -hRed);
+                hourHand.lineTo(-w1 / 2, 0);
+                hourHand.lineTo(w1 / 2, 0);
+                hourHand.drawCircle(0, 0, w1 / 2);
+                hourHand.closePath();
+                hourHand.endFill();
+                watch.addChild(hourHand);
+
+                // Rebuild minute hand
+                minuteHand.clear();
+                w1 = 0.11 * newRo;
+                w2 = 0.03 * newRo;
+                h1 = 0.73 * newRo;
+                h2 = (0.73 + 0.07) * newRo;
+                hRed = 0.12 * newRo;
+                minuteHand.x = newClockX;
+                minuteHand.y = newClockY;
+                minuteHand.beginFill(newColor);
+                minuteHand.lineStyle(newBorderLineWidth, 0x000000);
+                minuteHand.moveTo(w1 / 2, 0);
+                minuteHand.lineTo(w1 / 2, -h1);
+                minuteHand.lineTo(w2 / 2, -h1);
+                minuteHand.lineTo(w2 / 2, -h2);
+                minuteHand.lineTo(-w2 / 2, -h2);
+                minuteHand.lineTo(-w2 / 2, -h1);
+                minuteHand.lineTo(-w1 / 2, -h1);
+                minuteHand.lineTo(-w1 / 2, 0);
+                minuteHand.lineTo(w1 / 2, 0);
+                minuteHand.closePath();
+                minuteHand.endFill();
+                minuteHand.beginFill(0xFF0000);
+                minuteHand.lineStyle(0, 0x000000);
+                minuteHand.moveTo(w1 / 2, 0);
+                minuteHand.lineTo(w1 / 2, -hRed);
+                minuteHand.lineTo(-w1 / 2, -hRed);
+                minuteHand.lineTo(-w1 / 2, 0);
+                minuteHand.lineTo(w1 / 2, 0);
+                minuteHand.drawCircle(0, 0, w1 / 2);
+                minuteHand.closePath();
+                minuteHand.endFill();
+                watch.addChild(minuteHand);
+
+                // Rebuild second hand
+                secondHand.clear();
+                secondHand.x = newClockX;
+                secondHand.y = newClockY;
+                secondHand.lineStyle(newBorderLineWidth, 0x000000);
+                secondHand.beginFill(0xFF0000);
+                secondHand.drawRect(-0.015 * newRo, -0.15 * newRo, 0.03 * newRo, 0.69 * newRo);
+                secondHand.drawCircle(0, 0, w1 * 0.4);
+                secondHand.drawCircle(0, 0, w1 * 0.1);
+                secondHand.beginFill(0xFFFFFF);
+                secondHand.drawRect(-0.015 * newRo, 0.54 * newRo, 0.03 * newRo, 0.08 * newRo);
+                secondHand.beginFill(0xFF0000);
+                secondHand.drawRect(-0.055 * newRo, 0.62 * newRo, 0.11 * newRo, 0.11 * newRo);
+                secondHand.beginFill(0xFFFFFF);
+                secondHand.drawRect(-0.015 * newRo, 0.73 * newRo, 0.03 * newRo, 0.08 * newRo);
+                secondHand.closePath();
+                secondHand.endFill();
+                watch.addChild(secondHand);
+            }
+
+            // Add resize event listener
+            window.addEventListener('resize', () => {
+                setTimeout(rebuildClock, 50);
+            });
 
             // BRING WATCH TO STAGE
             app.stage.addChild(watch);
