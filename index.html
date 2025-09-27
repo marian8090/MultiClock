@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MultiClock</title>
+    <script src="https://pixijs.download/release/pixi.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000000;
+            font-family: Arial, sans-serif;
+        }
+
+        #clock-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #clock-number {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            color: #00ff00;
+            font-size: 18px;
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+            opacity: 0.8;
+        }
+
+        #help-overlay {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 2000;
+            text-align: center;
+            display: none;
+        }
+
+        #help-overlay h3 {
+            margin: 0 0 10px 0;
+            color: #00ff00;
+        }
+
+        #help-overlay ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #help-overlay li {
+            margin: 5px 0;
+        }
+
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="clock-container"></div>
+    <div id="clock-number">1</div>
+
+    <div id="help-overlay">
+        <h3>MultiClock Controls</h3>
+        <ul>
+            <li>1,2,3: Switch clocks</li>
+            <li>↑↓: Navigate parameters</li>
+            <li>←→: Change values</li>
+            <li>F: Toggle fullscreen</li>
+            <li>H: Show this help</li>
+        </ul>
+    </div>
+
+    <script type="module">
+        import { AnalogClock } from './clocks/1_analog-clock.js';
+        import { DigitalClock } from './clocks/2_digital-clock.js';
+        import { DigitalAsciiArtClock } from './clocks/3_digital-ascii-art.js';
+
+        class MultiClock {
+            constructor() {
+                this.clocks = [
+                    { name: 'Analog', class: AnalogClock },
+                    { name: 'Digital', class: DigitalClock },
+                    { name: 'Digital ASCII Art', class: DigitalAsciiArtClock }
+                ];
+                this.currentClockIndex = 0;
+                this.currentClockInstance = null;
+                this.container = document.getElementById('clock-container');
+                this.clockNumberDisplay = document.getElementById('clock-number');
+                this.helpOverlay = document.getElementById('help-overlay');
+                this.helpTimeout = null;
+
+                this.setupEventListeners();
+                this.loadClock(0);
+            }
+
+            setupEventListeners() {
+                document.addEventListener('keydown', (event) => {
+                    switch(event.key) {
+                        case '1':
+                        case '2':
+                        case '3':
+                            const clockIndex = parseInt(event.key) - 1;
+                            if (clockIndex >= 0 && clockIndex < this.clocks.length) {
+                                this.switchToClock(clockIndex);
+                            }
+                            this.hideHelp();
+                            break;
+
+                        case 'ArrowUp':
+                            if (this.currentClockInstance && this.currentClockInstance.navigateParameterUp) {
+                                this.currentClockInstance.navigateParameterUp();
+                            }
+                            this.hideHelp();
+                            break;
+
+                        case 'ArrowDown':
+                            if (this.currentClockInstance && this.currentClockInstance.navigateParameterDown) {
+                                this.currentClockInstance.navigateParameterDown();
+                            }
+                            this.hideHelp();
+                            break;
+
+                        case 'ArrowLeft':
+                            if (this.currentClockInstance && this.currentClockInstance.changeParameterLeft) {
+                                this.currentClockInstance.changeParameterLeft();
+                            }
+                            this.hideHelp();
+                            break;
+
+                        case 'ArrowRight':
+                            if (this.currentClockInstance && this.currentClockInstance.changeParameterRight) {
+                                this.currentClockInstance.changeParameterRight();
+                            }
+                            this.hideHelp();
+                            break;
+
+                        case 'f':
+                        case 'F':
+                            this.toggleFullscreen();
+                            this.hideHelp();
+                            break;
+
+                        case 'h':
+                        case 'H':
+                            this.showHelp();
+                            break;
+                    }
+                });
+
+                // Auto-enter fullscreen on load
+                document.addEventListener('DOMContentLoaded', () => {
+                    setTimeout(() => this.enterFullscreen(), 100);
+                });
+            }
+
+            async loadClock(index) {
+                if (this.currentClockInstance) {
+                    this.currentClockInstance.destroy();
+                    this.clearContainer();
+                }
+
+                this.currentClockIndex = index;
+                const ClockClass = this.clocks[index].class;
+                this.currentClockInstance = new ClockClass();
+
+                try {
+                    await this.currentClockInstance.init(this.container);
+                    this.updateClockNumber();
+                } catch (error) {
+                    console.error('Failed to load clock:', error);
+                }
+            }
+
+            switchToClock(index) {
+                if (index !== this.currentClockIndex) {
+                    this.loadClock(index);
+                }
+            }
+
+            updateClockNumber() {
+                this.clockNumberDisplay.textContent = (this.currentClockIndex + 1).toString();
+            }
+
+
+            clearContainer() {
+                while (this.container.firstChild) {
+                    this.container.removeChild(this.container.firstChild);
+                }
+            }
+
+            showHelp() {
+                this.helpOverlay.style.display = 'block';
+
+                // Clear existing timeout
+                if (this.helpTimeout) {
+                    clearTimeout(this.helpTimeout);
+                }
+
+                // Auto-hide after 3 seconds
+                this.helpTimeout = setTimeout(() => {
+                    this.hideHelp();
+                }, 3000);
+            }
+
+            hideHelp() {
+                this.helpOverlay.style.display = 'none';
+                if (this.helpTimeout) {
+                    clearTimeout(this.helpTimeout);
+                    this.helpTimeout = null;
+                }
+            }
+
+
+            enterFullscreen() {
+                const element = document.documentElement;
+                if (element.requestFullscreen) {
+                    element.requestFullscreen();
+                } else if (element.mozRequestFullScreen) {
+                    element.mozRequestFullScreen();
+                } else if (element.webkitRequestFullscreen) {
+                    element.webkitRequestFullscreen();
+                } else if (element.msRequestFullscreen) {
+                    element.msRequestFullscreen();
+                }
+            }
+
+            exitFullscreen() {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) {
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) {
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) {
+                    document.msExitFullscreen();
+                }
+            }
+
+            toggleFullscreen() {
+                if (!document.fullscreenElement && !document.mozFullScreenElement &&
+                    !document.webkitFullscreenElement && !document.msFullscreenElement) {
+                    this.enterFullscreen();
+                } else {
+                    this.exitFullscreen();
+                }
+            }
+        }
+
+        // Initialize MultiClock when the page loads
+        window.addEventListener('load', () => {
+            new MultiClock();
+        });
+    </script>
+</body>
+</html>

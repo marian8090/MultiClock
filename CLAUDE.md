@@ -4,58 +4,83 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a single-file web-based analog clock application built with PixiJS. The entire application consists of one HTML file (`pixiClockU1.html`) that contains embedded CSS and JavaScript.
+MultiClock is a modular web-based clock application that allows users to switch between different clock styles. The application features a clean architecture with separate modules for each clock type and a main controller for managing clock selection.
 
 ## Architecture
 
-The clock application uses:
-- **PixiJS** v8+ loaded from CDN for 2D graphics rendering
-- **PIXI.Application** as the main application container with WebGL/Canvas rendering
-- **PIXI.Graphics** for drawing clock components (face, hands, hour/minute markers)
-- **PIXI.Text** for displaying the current date
-- **PIXI.Container** for organizing clock elements
+The application uses a modular ES6 module system:
+- **Main Controller**: `index.html` - Manages clock selection and user interface
+- **Clock Modules**: Individual ES6 modules for each clock type
+- **Font Assets**: Custom fonts stored in the `fonts/` directory
+
+### Available Clock Types
+
+1. **Analog Clock** (`clocks/analog-clock.js`):
+   - Built with PixiJS v8+ for 2D graphics rendering
+   - Features hour/minute markers, analog hands with red accents
+   - Date display positioned at 3 o'clock
+   - 8 FPS update rate for smooth animation
+   - Responsive design with automatic resizing
+
+2. **Digital Clock** (`clocks/digital-clock.js`):
+   - CSS/HTML-based digital display
+   - Green text on black background with glow effects
+   - Custom PMDG_NG3_DU_A font for aviation-style appearance
+   - 1 second update interval
+
+### User Controls
+
+- **Number Keys (1, 2, 3...)**: Direct selection of clock styles
+- **Arrow Keys (←/→)**: Cycle through available clocks
+- **F11**: Toggle fullscreen mode
+- **Escape**: Exit fullscreen mode
 
 ### Key Components
 
-- **Watch Face**: Hour markers (12 positions with special styling for 3,6,9,12) and minute markers (60 positions)
-- **Clock Hands**: Hour, minute, and second hands with different styling and red accents
-- **Date Display**: Shows current day of month positioned at 3 o'clock
-- **Animation Loop**: Uses PIXI ticker at 8 FPS to update hand positions based on current time
-- **Responsive Design**: Automatic resizing when window dimensions change (including fullscreen F11)
-
-### Coordinate System
-
-- Clock center: `(0.5 * screen.width, 0.5 * screen.height)`
-- Outer radius: `Math.min(screen.width, screen.height) * 0.48`
-- All dimensions are proportional to the outer radius for responsive scaling
-- Window resize triggers complete clock rebuild with new dimensions
+- **MultiClock Controller**: Manages clock switching and event handling
+- **Clock Base Interface**: Common init/destroy pattern for all clock types
+- **Responsive Design**: All clocks support fullscreen and window resizing
+- **Font Loading**: Custom fonts loaded from the `fonts/` directory
 
 ## Development
 
-Since this is a single HTML file with no build process:
-
 **To run the application:**
 ```bash
-# Open directly in browser
-open pixiClockU1.html
-# Or serve with a simple HTTP server
+# Serve with HTTP server (required for ES6 modules)
 python3 -m http.server 8000
+# Then open http://localhost:8000 in browser
 ```
 
+**To add a new clock:**
+1. Create new clock module in `clocks/` directory
+2. Implement `init(container)` and `destroy()` methods
+3. Add to the `clocks` array in `index.html`
+4. Update keyboard controls if needed
+
 **To test changes:**
-- Modify the HTML file directly
+- Modify the relevant module files
 - Refresh the browser to see changes
-- No compilation or build steps required
+- No build process required
 
-## Key Configuration
+## Technical Configuration
 
-- **Frame Rate**: Currently set to 8 FPS (`app.ticker.maxFPS = 8`)
-- **Colors**: White (#FFFFFF) for main elements, red (#FF0000) for accents, black (#000000) background
-- **Resolution**: Auto-scaling with 2x pixel density for crisp rendering on high-DPI displays
+- **Analog Clock**: 8 FPS, PixiJS with WebGL/Canvas rendering
+- **Digital Clock**: 1 FPS update, CSS-based styling
+- **Fonts**: Custom TTF fonts loaded via CSS @font-face
+- **Resolution**: Auto-scaling with 2x pixel density for high-DPI displays
 
 ## File Structure
 
 ```
-U1-clock/
-└── pixiClockU1.html    # Complete clock application (HTML + CSS + JS)
+MultiClock/
+├── index.html              # Main application controller
+├── clocks/
+│   ├── analog-clock.js     # PixiJS analog clock module
+│   └── digital-clock.js    # CSS/JS digital clock module
+├── fonts/
+│   ├── PMDG_NG3_DU_A.ttf  # Primary digital clock font
+│   ├── AppleII-PrintChar21.ttf
+│   ├── Perfect DOS VGA 437.ttf
+│   └── PMDG_NG3_DU_A-SC70x85-baseline.ttf
+└── CLAUDE.md               # This documentation file
 ```
