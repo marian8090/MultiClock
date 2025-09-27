@@ -9,13 +9,37 @@ export class AnalogClock {
         this.clockX = 0;
         this.clockY = 0;
         this.ro = 0;
-        this.color = 0xFFFFFF;
         this.borderLineWidth = 0;
         this.animationTicker = null;
         this.resizeHandler = null;
+
+        // Available colors - U1 original is white, GREEN variations for other colors
+        this.colors = [
+            { name: 'Original U1', value: 0xFFFFFF }, // White
+            { name: 'Green', value: 0x00FF00 },        // Full green
+            { name: 'Dark Green', value: 0x008800 },   // Red -> darker green
+            { name: 'Blue Green', value: 0x0088FF },   // Blue -> blue-green
+            { name: 'Yellow Green', value: 0x88FF00 }, // Yellow -> yellow-green
+            { name: 'Purple Green', value: 0x8800FF }, // Magenta -> purple-green
+            { name: 'Cyan Green', value: 0x00FFFF }    // Cyan -> cyan-green
+        ];
+
+        // Parameters
+        this.parameters = ['SIZE', 'COLOR'];
+        this.currentParameterIndex = 0;
+
+        // Current settings
+        this.baseSizeMultiplier = 1.0;
+        this.currentSizeMultiplier = 1.0;
+        this.currentColor = 0; // Original U1 (white)
+
+        // Parameter display element
+        this.parameterDisplay = null;
+        this.parameterDisplayTimeout = null;
     }
 
     async init(container) {
+        this.container = container;
         this.app = new PIXI.Application();
 
         await this.app.init({
@@ -31,6 +55,7 @@ export class AnalogClock {
         this.app.ticker.maxFPS = 8;
 
         this.buildClock();
+        this.createParameterDisplay();
         this.setupEventListeners();
         this.startAnimation();
     }
@@ -38,8 +63,9 @@ export class AnalogClock {
     buildClock() {
         this.clockX = 0.5 * this.app.screen.width;
         this.clockY = 0.5 * this.app.screen.height;
-        this.ro = Math.min(this.app.screen.width, this.app.screen.height) * 0.49;
+        this.ro = Math.min(this.app.screen.width, this.app.screen.height) * 0.49 * this.currentSizeMultiplier;
         this.borderLineWidth = 0.002 * this.ro;
+        this.color = this.colors[this.currentColor].value;
 
         if (this.watch) {
             this.app.stage.removeChild(this.watch);
@@ -51,6 +77,19 @@ export class AnalogClock {
         this.buildHands();
 
         this.app.stage.addChild(this.watch);
+    }
+
+    getDarkerColor(color) {
+        // Special case for Original U1 (white) - return red for traditional look
+        if (color === 0xFFFFFF) {
+            return 0xFF0000; // Red
+        }
+
+        // For other colors, extract RGB components and make them darker (multiply by 0.6)
+        const r = Math.floor(((color >> 16) & 0xFF) * 0.6);
+        const g = Math.floor(((color >> 8) & 0xFF) * 0.6);
+        const b = Math.floor((color & 0xFF) * 0.6);
+        return (r << 16) | (g << 8) | b;
     }
 
     buildWatchFace() {
@@ -139,7 +178,8 @@ export class AnalogClock {
         const w2 = 0.03 * this.ro;
         const h1 = 0.45 * this.ro;
         const h2 = (0.45 + 0.07) * this.ro;
-        const hRed = 0.24 * this.ro;
+        const hAccent = 0.24 * this.ro;
+        const darkerColor = this.getDarkerColor(this.color);
 
         this.hourHand.clear();
         this.hourHand.x = this.clockX;
@@ -159,11 +199,11 @@ export class AnalogClock {
         this.hourHand.closePath();
         this.hourHand.endFill();
 
-        this.hourHand.beginFill(0xFF0000);
-        this.hourHand.lineStyle(0, 0x000000);
+        this.hourHand.beginFill(darkerColor);
+        this.hourHand.lineStyle(this.borderLineWidth, 0x000000);
         this.hourHand.moveTo(w1 / 2, 0);
-        this.hourHand.lineTo(w1 / 2, -hRed);
-        this.hourHand.lineTo(-w1 / 2, -hRed);
+        this.hourHand.lineTo(w1 / 2, -hAccent);
+        this.hourHand.lineTo(-w1 / 2, -hAccent);
         this.hourHand.lineTo(-w1 / 2, 0);
         this.hourHand.lineTo(w1 / 2, 0);
         this.hourHand.drawCircle(0, 0, w1 / 2);
@@ -176,7 +216,8 @@ export class AnalogClock {
         const w2 = 0.03 * this.ro;
         const h1 = 0.73 * this.ro;
         const h2 = (0.73 + 0.07) * this.ro;
-        const hRed = 0.12 * this.ro;
+        const hAccent = 0.12 * this.ro;
+        const darkerColor = this.getDarkerColor(this.color);
 
         this.minuteHand.clear();
         this.minuteHand.x = this.clockX;
@@ -196,11 +237,11 @@ export class AnalogClock {
         this.minuteHand.closePath();
         this.minuteHand.endFill();
 
-        this.minuteHand.beginFill(0xFF0000);
-        this.minuteHand.lineStyle(0, 0x000000);
+        this.minuteHand.beginFill(darkerColor);
+        this.minuteHand.lineStyle(this.borderLineWidth, 0x000000);
         this.minuteHand.moveTo(w1 / 2, 0);
-        this.minuteHand.lineTo(w1 / 2, -hRed);
-        this.minuteHand.lineTo(-w1 / 2, -hRed);
+        this.minuteHand.lineTo(w1 / 2, -hAccent);
+        this.minuteHand.lineTo(-w1 / 2, -hAccent);
         this.minuteHand.lineTo(-w1 / 2, 0);
         this.minuteHand.lineTo(w1 / 2, 0);
         this.minuteHand.drawCircle(0, 0, w1 / 2);
@@ -210,24 +251,27 @@ export class AnalogClock {
 
     buildSecondHand() {
         const w1 = 0.11 * this.ro;
+        const darkerColor = this.getDarkerColor(this.color);
+        // For Original U1, use white stripes; for other colors, use the main color
+        const stripeColor = (this.color === 0xFFFFFF) ? 0xFFFFFF : this.color;
 
         this.secondHand.clear();
         this.secondHand.x = this.clockX;
         this.secondHand.y = this.clockY;
 
         this.secondHand.lineStyle(this.borderLineWidth, 0x000000);
-        this.secondHand.beginFill(0xFF0000);
+        this.secondHand.beginFill(darkerColor);
         this.secondHand.drawRect(-0.015 * this.ro, -0.15 * this.ro, 0.03 * this.ro, 0.69 * this.ro);
         this.secondHand.drawCircle(0, 0, w1 * 0.4);
         this.secondHand.drawCircle(0, 0, w1 * 0.1);
 
-        this.secondHand.beginFill(0xFFFFFF);
+        this.secondHand.beginFill(stripeColor);
         this.secondHand.drawRect(-0.015 * this.ro, 0.54 * this.ro, 0.03 * this.ro, 0.08 * this.ro);
 
-        this.secondHand.beginFill(0xFF0000);
+        this.secondHand.beginFill(darkerColor);
         this.secondHand.drawRect(-0.055 * this.ro, 0.62 * this.ro, 0.11 * this.ro, 0.11 * this.ro);
 
-        this.secondHand.beginFill(0xFFFFFF);
+        this.secondHand.beginFill(stripeColor);
         this.secondHand.drawRect(-0.015 * this.ro, 0.73 * this.ro, 0.03 * this.ro, 0.08 * this.ro);
         this.secondHand.closePath();
         this.secondHand.endFill();
@@ -253,6 +297,130 @@ export class AnalogClock {
         this.app.ticker.add(this.animationTicker);
     }
 
+    createParameterDisplay() {
+        // Create CSS styles for parameter display
+        if (!document.getElementById('analog-clock-styles')) {
+            const style = document.createElement('style');
+            style.id = 'analog-clock-styles';
+            style.textContent = `
+                .analog-parameter-display {
+                    position: fixed;
+                    top: 20px;
+                    left: 20px;
+                    color: #00ff00;
+                    font-size: 14px;
+                    z-index: 1000;
+                    font-family: 'Courier New', Courier, monospace;
+                    opacity: 0.9;
+                    white-space: pre;
+                    line-height: 1.4;
+                    background: rgba(0, 0, 0, 0.7);
+                    padding: 8px;
+                    border-radius: 4px;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        this.parameterDisplay = document.createElement('div');
+        this.parameterDisplay.className = 'analog-parameter-display';
+        this.updateParameterDisplay();
+        this.container.appendChild(this.parameterDisplay);
+    }
+
+    updateParameterDisplay() {
+        const parameter = this.parameters[this.currentParameterIndex];
+        let value = '';
+
+        switch (parameter) {
+            case 'SIZE':
+                value = Math.round(this.currentSizeMultiplier * 100) + '%';
+                break;
+            case 'COLOR':
+                value = this.colors[this.currentColor].name;
+                break;
+        }
+
+        this.parameterDisplay.textContent = `${parameter}: ${value}`;
+        this.parameterDisplay.style.display = 'block';
+
+        // Clear existing timeout
+        if (this.parameterDisplayTimeout) {
+            clearTimeout(this.parameterDisplayTimeout);
+        }
+
+        // Auto-hide after 5 seconds
+        this.parameterDisplayTimeout = setTimeout(() => {
+            this.parameterDisplay.style.display = 'none';
+        }, 5000);
+    }
+
+    showSelectedValue() {
+        const parameter = this.parameters[this.currentParameterIndex];
+        let value = '';
+
+        switch (parameter) {
+            case 'SIZE':
+                value = Math.round(this.currentSizeMultiplier * 100) + '%';
+                break;
+            case 'COLOR':
+                value = this.colors[this.currentColor].name;
+                break;
+        }
+
+        // Temporarily show the selected value
+        this.parameterDisplay.textContent = `${parameter}: ${value}`;
+
+        setTimeout(() => {
+            this.updateParameterDisplay();
+        }, 1000);
+    }
+
+    // Parameter navigation methods
+    navigateParameterUp() {
+        this.currentParameterIndex = (this.currentParameterIndex - 1 + this.parameters.length) % this.parameters.length;
+        this.updateParameterDisplay();
+    }
+
+    navigateParameterDown() {
+        this.currentParameterIndex = (this.currentParameterIndex + 1) % this.parameters.length;
+        this.updateParameterDisplay();
+    }
+
+    changeParameterLeft() {
+        const parameter = this.parameters[this.currentParameterIndex];
+
+        switch (parameter) {
+            case 'SIZE':
+                this.currentSizeMultiplier = Math.max(0.2, this.currentSizeMultiplier / 1.2);
+                this.buildClock();
+                break;
+            case 'COLOR':
+                this.currentColor = (this.currentColor - 1 + this.colors.length) % this.colors.length;
+                this.buildClock();
+                break;
+        }
+
+        this.showSelectedValue();
+    }
+
+    changeParameterRight() {
+        const parameter = this.parameters[this.currentParameterIndex];
+
+        switch (parameter) {
+            case 'SIZE':
+                this.currentSizeMultiplier = Math.min(3.0, this.currentSizeMultiplier * 1.2);
+                this.buildClock();
+                break;
+            case 'COLOR':
+                this.currentColor = (this.currentColor + 1) % this.colors.length;
+                this.buildClock();
+                break;
+        }
+
+        this.showSelectedValue();
+    }
+
     destroy() {
         if (this.animationTicker) {
             this.app.ticker.remove(this.animationTicker);
@@ -260,6 +428,20 @@ export class AnalogClock {
 
         if (this.resizeHandler) {
             window.removeEventListener('resize', this.resizeHandler);
+        }
+
+        // Clean up parameter display
+        if (this.parameterDisplayTimeout) {
+            clearTimeout(this.parameterDisplayTimeout);
+        }
+        if (this.parameterDisplay && this.parameterDisplay.parentNode) {
+            this.parameterDisplay.parentNode.removeChild(this.parameterDisplay);
+        }
+
+        // Clean up styles
+        const styleElement = document.getElementById('analog-clock-styles');
+        if (styleElement) {
+            styleElement.parentNode.removeChild(styleElement);
         }
 
         if (this.app) {

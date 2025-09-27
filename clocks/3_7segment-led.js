@@ -1,4 +1,4 @@
-export class DigitalClock {
+export class SevenSegmentLedClock {
     constructor() {
         this.container = null;
         this.clockElement = null;
@@ -6,24 +6,27 @@ export class DigitalClock {
         this.updateInterval = null;
         this.styleElement = null;
 
-        // Available fonts
-        this.fonts = [
-            { name: 'PMDG_NG3_DU_A', file: 'PMDG_NG3_DU_A.ttf' },
-            { name: 'AppleII-PrintChar21', file: 'AppleII-PrintChar21.ttf' },
-            { name: 'Perfect_DOS_VGA_437', file: 'Perfect DOS VGA 437.ttf' },
-            { name: 'PMDG_NG3_DU_A_SC70x85', file: 'PMDG_NG3_DU_A-SC70x85-baseline.ttf' },
-            { name: 'Courier_New', file: null, family: '"Courier New", Courier, monospace' },
-            { name: 'Monaco', file: null, family: 'Monaco, "Lucida Console", monospace' },
-            { name: 'Consolas', file: null, family: 'Consolas, "Andale Mono", monospace' },
-            { name: 'Lucida_Console', file: null, family: '"Lucida Console", Monaco, monospace' },
-            { name: 'DejaVu_Sans_Mono', file: null, family: '"DejaVu Sans Mono", "Liberation Mono", monospace' },
-            { name: 'Source_Code_Pro', file: null, family: '"Source Code Pro", "SF Mono", monospace' }
-        ];
+        // 7-segment patterns for digits 0-9
+        this.segmentPatterns = {
+            '0': [true, true, true, true, true, true, false],
+            '1': [false, true, true, false, false, false, false],
+            '2': [true, true, false, true, true, false, true],
+            '3': [true, true, true, true, false, false, true],
+            '4': [false, true, true, false, false, true, true],
+            '5': [true, false, true, true, false, true, true],
+            '6': [true, false, true, true, true, true, true],
+            '7': [true, true, true, false, false, false, false],
+            '8': [true, true, true, true, true, true, true],
+            '9': [true, true, true, true, false, true, true],
+            ':': 'colon',
+            '.': 'dot',
+            ' ': 'space'
+        };
 
         // Available colors
         this.colors = [
-            { name: 'Green', value: '#00ff00' },
             { name: 'Red', value: '#ff0000' },
+            { name: 'Green', value: '#00ff00' },
             { name: 'Blue', value: '#0000ff' },
             { name: 'Yellow', value: '#ffff00' },
             { name: 'Magenta', value: '#ff00ff' },
@@ -39,14 +42,14 @@ export class DigitalClock {
         ];
 
         // Parameters
-        this.parameters = ['FONT', 'FONTSIZE', 'FONT COLOUR', 'RENDERER'];
+        this.parameters = ['FONTSIZE', 'FONT COLOUR', 'RENDERER'];
         this.currentParameterIndex = 0;
 
         // Current settings
-        this.currentFont = 0;
-        this.baseFontSize = 19.5; // vmin
+        this.baseTimeFontSize = 8; // vmin for LED segments
+        this.baseDateFontSize = 5.6; // vmin for date (20:14 ratio)
         this.currentFontSizeMultiplier = 1.0;
-        this.currentColor = 0;
+        this.currentColor = 1; // Green by default
         this.currentRenderMode = 0; // Smooth by default
 
         // Parameter display element
@@ -69,71 +72,167 @@ export class DigitalClock {
     }
 
     updateStyles() {
-        const fontFaces = this.fonts
-            .filter(font => font.file !== null)
-            .map(font =>
-                `@font-face {
-                    font-family: '${font.name}';
-                    src: url('fonts/${font.file}') format('truetype');
-                }`
-            ).join('\n');
-
-        const currentFontInfo = this.fonts[this.currentFont];
-        const currentFontFamily = currentFontInfo.family || `'${currentFontInfo.name}', 'Courier New', monospace`;
         const currentColor = this.colors[this.currentColor].value;
         const renderMode = this.renderModes[this.currentRenderMode].value;
 
-        let clockFontSize = this.baseFontSize * this.currentFontSizeMultiplier;
-        let dateFontSize = (this.baseFontSize * 0.7) * this.currentFontSizeMultiplier;
+        let timeSegmentSize = this.baseTimeFontSize * this.currentFontSizeMultiplier;
+        let dateSegmentSize = this.baseDateFontSize * this.currentFontSizeMultiplier;
 
         // Apply pixel-perfect rounding for crisp and pixelated modes
         if (renderMode === 'crisp' || renderMode === 'pixelated') {
             const vminToPx = Math.min(window.innerWidth, window.innerHeight) / 100;
-            clockFontSize = Math.round(clockFontSize * vminToPx) / vminToPx;
-            dateFontSize = Math.round(dateFontSize * vminToPx) / vminToPx;
+            timeSegmentSize = Math.round(timeSegmentSize * vminToPx) / vminToPx;
+            dateSegmentSize = Math.round(dateSegmentSize * vminToPx) / vminToPx;
         }
+
+        const segmentWidth = timeSegmentSize * 0.8;
+        const segmentHeight = timeSegmentSize * 0.15;
+        const dateSegmentWidth = dateSegmentSize * 0.8;
+        const dateSegmentHeight = dateSegmentSize * 0.15;
 
         // Generate rendering CSS based on mode
         const renderingCSS = this.getRenderingCSS(renderMode);
 
         this.styleElement.textContent = `
-            ${fontFaces}
-
-            .digital-clock-container {
+            .led-clock-container {
                 position: absolute;
                 top: 0;
                 left: 0;
                 width: 100vw;
                 height: 100vh;
                 background-color: black;
-                color: ${currentColor};
-                font-family: ${currentFontFamily};
                 overflow: hidden;
                 cursor: none;
                 display: flex;
                 justify-content: center;
                 align-items: center;
+                flex-direction: column;
                 ${renderingCSS.container}
             }
 
-            .digital-display {
+            .led-display {
                 text-align: center;
+                margin-bottom: 2em;
             }
 
-            .digital-clock {
-                font-size: ${clockFontSize}vmin;
-                font-weight: bold;
-                letter-spacing: 0.1em;
-                margin-bottom: 0.75em;
-                ${renderingCSS.text}
+            .led-time {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: ${timeSegmentSize * 0.15}vmin;
+                margin-bottom: 2.5em;
             }
 
-            .digital-date {
-                font-size: ${dateFontSize}vmin;
-                font-weight: bold;
-                letter-spacing: 0.1em;
-                ${renderingCSS.text}
+            .led-date {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                gap: ${dateSegmentSize * 0.15}vmin;
             }
+
+            .led-time .led-digit {
+                position: relative;
+                width: ${segmentWidth}vmin;
+                height: ${timeSegmentSize * 1.5}vmin;
+                margin: 0;
+            }
+
+            .led-date .led-digit {
+                position: relative;
+                width: ${dateSegmentWidth}vmin;
+                height: ${dateSegmentSize * 1.5}vmin;
+                margin: 0;
+            }
+
+            .led-time .led-colon {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: ${timeSegmentSize * 1.5}vmin;
+                gap: ${timeSegmentSize * 0.2}vmin;
+            }
+
+            .led-date .led-colon {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+                height: ${dateSegmentSize * 1.5}vmin;
+                gap: ${dateSegmentSize * 0.2}vmin;
+            }
+
+            .led-time .led-dot {
+                width: ${segmentHeight}vmin;
+                height: ${segmentHeight}vmin;
+                background: ${currentColor};
+                border-radius: 50%;
+            }
+
+            .led-date .led-dot {
+                width: ${dateSegmentHeight}vmin;
+                height: ${dateSegmentHeight}vmin;
+                background: ${currentColor};
+                border-radius: 50%;
+            }
+
+            .led-segment {
+                position: absolute;
+                background: ${currentColor};
+                border-radius: ${segmentHeight * 0.1}vmin;
+                transition: opacity 0.1s;
+                ${renderingCSS.segment}
+            }
+
+            .led-segment.off {
+                background: #222;
+                box-shadow: none;
+                opacity: 0.1;
+            }
+
+            /* Horizontal segments for time */
+            .led-time .led-segment.horizontal {
+                width: ${segmentWidth * 0.8}vmin;
+                height: ${segmentHeight}vmin;
+                left: ${segmentWidth * 0.1}vmin;
+            }
+
+            /* Vertical segments for time */
+            .led-time .led-segment.vertical {
+                width: ${segmentHeight}vmin;
+                height: ${timeSegmentSize * 0.65}vmin;
+            }
+
+            /* Horizontal segments for date */
+            .led-date .led-segment.horizontal {
+                width: ${dateSegmentWidth * 0.8}vmin;
+                height: ${dateSegmentHeight}vmin;
+                left: ${dateSegmentWidth * 0.1}vmin;
+            }
+
+            /* Vertical segments for date */
+            .led-date .led-segment.vertical {
+                width: ${dateSegmentHeight}vmin;
+                height: ${dateSegmentSize * 0.65}vmin;
+            }
+
+            /* Segment positions for time */
+            .led-time .seg-a { top: 0; }
+            .led-time .seg-b { top: ${timeSegmentSize * 0.075}vmin; right: 0; }
+            .led-time .seg-c { bottom: ${timeSegmentSize * 0.075}vmin; right: 0; }
+            .led-time .seg-d { bottom: 0; }
+            .led-time .seg-e { bottom: ${timeSegmentSize * 0.075}vmin; left: 0; }
+            .led-time .seg-f { top: ${timeSegmentSize * 0.075}vmin; left: 0; }
+            .led-time .seg-g { top: 50%; transform: translateY(-50%); }
+
+            /* Segment positions for date */
+            .led-date .seg-a { top: 0; }
+            .led-date .seg-b { top: ${dateSegmentSize * 0.075}vmin; right: 0; }
+            .led-date .seg-c { bottom: ${dateSegmentSize * 0.075}vmin; right: 0; }
+            .led-date .seg-d { bottom: 0; }
+            .led-date .seg-e { bottom: ${dateSegmentSize * 0.075}vmin; left: 0; }
+            .led-date .seg-f { top: ${dateSegmentSize * 0.075}vmin; left: 0; }
+            .led-date .seg-g { top: 50%; transform: translateY(-50%); }
 
             .parameter-display {
                 position: fixed;
@@ -158,40 +257,38 @@ export class DigitalClock {
             case 'smooth':
                 return {
                     container: '',
-                    text: ''
+                    segment: ''
                 };
             case 'crisp':
                 return {
                     container: 'image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;',
-                    text: 'text-rendering: optimizeSpeed; -webkit-font-smoothing: none; -moz-osx-font-smoothing: grayscale;'
+                    segment: 'image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; transform: translate3d(0, 0, 0);'
                 };
             case 'pixelated':
                 return {
                     container: 'image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges;',
-                    text: 'text-rendering: optimizeSpeed; -webkit-font-smoothing: none; -moz-osx-font-smoothing: grayscale; image-rendering: pixelated;'
+                    segment: 'image-rendering: pixelated; image-rendering: -moz-crisp-edges; image-rendering: crisp-edges; transform: translate3d(0, 0, 0);'
                 };
             default:
                 return {
                     container: '',
-                    text: ''
+                    segment: ''
                 };
         }
     }
 
     createHTML() {
         const clockContainer = document.createElement('div');
-        clockContainer.className = 'digital-clock-container';
+        clockContainer.className = 'led-clock-container';
 
         const display = document.createElement('div');
-        display.className = 'digital-display';
+        display.className = 'led-display';
 
         this.clockElement = document.createElement('div');
-        this.clockElement.className = 'digital-clock';
-        this.clockElement.id = 'digital-clock';
+        this.clockElement.className = 'led-time';
 
         this.dateElement = document.createElement('div');
-        this.dateElement.className = 'digital-date';
-        this.dateElement.id = 'digital-date';
+        this.dateElement.className = 'led-date';
 
         display.appendChild(this.clockElement);
         display.appendChild(this.dateElement);
@@ -212,9 +309,6 @@ export class DigitalClock {
         let value = '';
 
         switch (parameter) {
-            case 'FONT':
-                value = this.fonts[this.currentFont].name.replace(/_/g, ' ');
-                break;
             case 'FONTSIZE':
                 value = Math.round(this.currentFontSizeMultiplier * 100) + '%';
                 break;
@@ -245,9 +339,6 @@ export class DigitalClock {
         let value = '';
 
         switch (parameter) {
-            case 'FONT':
-                value = this.fonts[this.currentFont].name.replace(/_/g, ' ');
-                break;
             case 'FONTSIZE':
                 value = Math.round(this.currentFontSizeMultiplier * 100) + '%';
                 break;
@@ -260,12 +351,58 @@ export class DigitalClock {
         }
 
         // Temporarily show the selected value
-        const originalText = this.parameterDisplay.textContent;
         this.parameterDisplay.textContent = `${parameter}: ${value}`;
 
         setTimeout(() => {
             this.updateParameterDisplay();
         }, 1000);
+    }
+
+    createSegmentDigit(digit) {
+        const digitElement = document.createElement('div');
+        digitElement.className = 'led-digit';
+
+        if (digit === ':') {
+            digitElement.className = 'led-colon';
+            const dot1 = document.createElement('div');
+            const dot2 = document.createElement('div');
+            dot1.className = 'led-dot';
+            dot2.className = 'led-dot';
+            digitElement.appendChild(dot1);
+            digitElement.appendChild(dot2);
+            return digitElement;
+        }
+
+        if (digit === '.') {
+            const dotElement = document.createElement('div');
+            dotElement.className = 'led-dot';
+            dotElement.style.position = 'absolute';
+            dotElement.style.bottom = '0';
+            dotElement.style.right = '0';
+            digitElement.appendChild(dotElement);
+            return digitElement;
+        }
+
+        if (digit === ' ') {
+            return digitElement;
+        }
+
+        const pattern = this.segmentPatterns[digit];
+        const segmentNames = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+
+        segmentNames.forEach((name, index) => {
+            const segment = document.createElement('div');
+            const isHorizontal = ['a', 'd', 'g'].includes(name);
+            segment.className = `led-segment ${isHorizontal ? 'horizontal' : 'vertical'} seg-${name}`;
+
+            if (!pattern[index]) {
+                segment.classList.add('off');
+            }
+
+            digitElement.appendChild(segment);
+        });
+
+        return digitElement;
     }
 
     // Parameter navigation methods
@@ -283,10 +420,6 @@ export class DigitalClock {
         const parameter = this.parameters[this.currentParameterIndex];
 
         switch (parameter) {
-            case 'FONT':
-                this.currentFont = (this.currentFont - 1 + this.fonts.length) % this.fonts.length;
-                this.updateStyles();
-                break;
             case 'FONTSIZE':
                 this.currentFontSizeMultiplier = Math.max(0.2, this.currentFontSizeMultiplier / 1.2);
                 this.updateStyles();
@@ -308,10 +441,6 @@ export class DigitalClock {
         const parameter = this.parameters[this.currentParameterIndex];
 
         switch (parameter) {
-            case 'FONT':
-                this.currentFont = (this.currentFont + 1) % this.fonts.length;
-                this.updateStyles();
-                break;
             case 'FONTSIZE':
                 this.currentFontSizeMultiplier = Math.min(5.0, this.currentFontSizeMultiplier * 1.2);
                 this.updateStyles();
@@ -343,8 +472,17 @@ export class DigitalClock {
         const year = now.getFullYear();
         const dateString = `${day}.${month}.${year}`;
 
-        this.clockElement.textContent = timeString;
-        this.dateElement.textContent = dateString;
+        // Clear and rebuild time display
+        this.clockElement.innerHTML = '';
+        for (let char of timeString) {
+            this.clockElement.appendChild(this.createSegmentDigit(char));
+        }
+
+        // Clear and rebuild date display
+        this.dateElement.innerHTML = '';
+        for (let char of dateString) {
+            this.dateElement.appendChild(this.createSegmentDigit(char));
+        }
     }
 
     startUpdate() {

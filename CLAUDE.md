@@ -4,43 +4,72 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-MultiClock is a modular web-based clock application that allows users to switch between different clock styles. The application features a clean architecture with separate modules for each clock type and a main controller for managing clock selection.
+MultiClock is a sophisticated modular web-based clock application that allows users to switch between different clock styles with comprehensive customization options. The application features a clean ES6 module architecture with separate modules for each clock type, extensive parameter systems, and advanced rendering options.
 
 ## Architecture
 
-The application uses a modular ES6 module system:
-- **Main Controller**: `index.html` - Manages clock selection and user interface
-- **Clock Modules**: Individual ES6 modules for each clock type
-- **Font Assets**: Custom fonts stored in the `fonts/` directory
+The application uses a modular ES6 module system with a robust parameter management framework:
+- **Main Controller**: `index.html` - Manages clock selection, keyboard controls, and user interface
+- **Clock Modules**: Individual ES6 modules for each clock type with standardized interfaces
+- **Font Assets**: Custom fonts and system font integration
+- **Parameter System**: Consistent navigation and customization across all clocks
 
 ### Available Clock Types
 
-1. **Analog Clock** (`clocks/analog-clock.js`):
+1. **Analog Clock** (`clocks/1_analog-clock.js`):
    - Built with PixiJS v8+ for 2D graphics rendering
-   - Features hour/minute markers, analog hands with red accents
+   - Features hour/minute markers, analog hands with color-coordinated accents
    - Date display positioned at 3 o'clock
    - 8 FPS update rate for smooth animation
-   - Responsive design with automatic resizing
+   - **Parameters**: SIZE (20%-300%), COLOR (Original U1/White with red accents, Green variations)
+   - **Special Features**: Original U1 maintains traditional white/red color scheme, other colors use coordinated darker accents
 
-2. **Digital Clock** (`clocks/digital-clock.js`):
-   - CSS/HTML-based digital display
-   - Green text on black background with glow effects
-   - Custom PMDG_NG3_DU_A font for aviation-style appearance
-   - 1 second update interval
+2. **Digital Clock** (`clocks/2_digital-clock.js`):
+   - CSS/HTML-based digital display with advanced font rendering
+   - **Fonts**: 10 options including 4 custom TTF fonts + 6 system monospace fonts
+   - **Parameters**: FONT, FONTSIZE (20%-500%), FONT COLOUR (7 colors), RENDERER (3 modes)
+   - **Rendering Modes**: Smooth, Crisp (sharp edges), Pixelated (pixel-perfect)
+   - **Ratio**: 20:14 time-to-date size ratio for optimal readability
+
+3. **7-Segment LED Clock** (`clocks/3_7segment-led.js`):
+   - CSS-generated authentic 7-segment LED display simulation
+   - **Parameters**: FONTSIZE (20%-500%), FONT COLOUR (7 colors), RENDERER (3 modes)
+   - **Features**: Realistic LED module spacing, integrated colons/dots, pixel-perfect rendering options
+   - **Default**: Green color for authentic LED appearance
+   - **Ratio**: 20:14 time-to-date size ratio
 
 ### User Controls
 
-- **Number Keys (1, 2, 3...)**: Direct selection of clock styles
-- **Arrow Keys (←/→)**: Cycle through available clocks
-- **F11**: Toggle fullscreen mode
-- **Escape**: Exit fullscreen mode
+- **Number Keys (1, 2, 3)**: Direct selection of clock styles
+- **Arrow Keys (↑/↓)**: Navigate through parameters for selected clock
+- **Arrow Keys (←/→)**: Change parameter values
+- **F**: Toggle fullscreen mode
+- **H**: Show/hide help overlay (auto-hides after 3 seconds)
 
-### Key Components
+### Parameter System
 
-- **MultiClock Controller**: Manages clock switching and event handling
-- **Clock Base Interface**: Common init/destroy pattern for all clock types
-- **Responsive Design**: All clocks support fullscreen and window resizing
-- **Font Loading**: Custom fonts loaded from the `fonts/` directory
+Each clock implements a standardized parameter interface:
+- **Navigation**: Up/Down arrows cycle through available parameters
+- **Adjustment**: Left/Right arrows modify parameter values
+- **Display**: Current parameter and value shown in top-left corner (auto-hides after 5 seconds)
+- **Consistency**: All clocks follow the same interaction patterns
+
+### Advanced Features
+
+#### Rendering Modes (Clocks 2 & 3)
+- **Smooth**: Default CSS rendering with antialiasing
+- **Crisp**: Sharp edges with disabled font smoothing for clarity
+- **Pixelated**: Pixel-perfect rendering with no sub-pixel artifacts
+
+#### Font System (Clock 2)
+- **Custom TTF Fonts**: PMDG_NG3_DU_A variants, AppleII-PrintChar21, Perfect DOS VGA 437
+- **System Fonts**: Courier New, Monaco, Consolas, Lucida Console, DejaVu Sans Mono, Source Code Pro
+- **Smart Loading**: TTF files loaded via @font-face, system fonts use CSS font stacks
+
+#### Color Coordination (Clock 1)
+- **Original U1**: White elements with traditional red accents
+- **Color Variants**: Main color with mathematically calculated darker accents (60% intensity)
+- **Consistent Borders**: Black outlines on all hands for optimal contrast
 
 ## Development
 
@@ -52,35 +81,74 @@ python3 -m http.server 8000
 ```
 
 **To add a new clock:**
-1. Create new clock module in `clocks/` directory
-2. Implement `init(container)` and `destroy()` methods
+1. Create new clock module in `clocks/` directory with number prefix (e.g., `4_new-clock.js`)
+2. Implement required methods:
+   - `init(container)` - Initialize clock in provided container
+   - `destroy()` - Clean up resources and elements
+   - `navigateParameterUp()` / `navigateParameterDown()` - Parameter navigation
+   - `changeParameterLeft()` / `changeParameterRight()` - Parameter value changes
 3. Add to the `clocks` array in `index.html`
-4. Update keyboard controls if needed
+4. Update help text and keyboard controls if needed
+
+**Parameter Implementation Pattern:**
+```javascript
+// Required parameter structure
+this.parameters = ['PARAM1', 'PARAM2', 'PARAM3'];
+this.currentParameterIndex = 0;
+
+// Required methods for parameter system
+updateParameterDisplay() { /* Update UI with current parameter */ }
+showSelectedValue() { /* Temporarily show selected value */ }
+```
 
 **To test changes:**
 - Modify the relevant module files
 - Refresh the browser to see changes
 - No build process required
+- Use browser dev tools for debugging
 
 ## Technical Configuration
 
-- **Analog Clock**: 8 FPS, PixiJS with WebGL/Canvas rendering
-- **Digital Clock**: 1 FPS update, CSS-based styling
-- **Fonts**: Custom TTF fonts loaded via CSS @font-face
-- **Resolution**: Auto-scaling with 2x pixel density for high-DPI displays
+- **Analog Clock**: 8 FPS, PixiJS with WebGL/Canvas rendering, responsive scaling
+- **Digital Clock**: 1 second updates, CSS-based with font smoothing control
+- **7-Segment LED**: 1 second updates, pure CSS segments with realistic spacing
+- **Fonts**: Custom TTF fonts + system font fallbacks for cross-platform compatibility
+- **Resolution**: Auto-scaling with pixel-perfect options for crisp rendering
+- **Responsive**: All clocks support fullscreen and window resizing
 
 ## File Structure
 
 ```
 MultiClock/
-├── index.html              # Main application controller
+├── index.html                          # Main application controller
 ├── clocks/
-│   ├── analog-clock.js     # PixiJS analog clock module
-│   └── digital-clock.js    # CSS/JS digital clock module
+│   ├── 1_analog-clock.js               # PixiJS analog clock with color system
+│   ├── 2_digital-clock.js              # CSS digital clock with fonts & rendering
+│   └── 3_7segment-led.js               # 7-segment LED display simulation
 ├── fonts/
-│   ├── PMDG_NG3_DU_A.ttf  # Primary digital clock font
-│   ├── AppleII-PrintChar21.ttf
-│   ├── Perfect DOS VGA 437.ttf
-│   └── PMDG_NG3_DU_A-SC70x85-baseline.ttf
-└── CLAUDE.md               # This documentation file
+│   ├── PMDG_NG3_DU_A.ttf              # Aviation-style digital font
+│   ├── AppleII-PrintChar21.ttf        # Retro computer font
+│   ├── Perfect DOS VGA 437.ttf        # DOS/VGA style font
+│   └── PMDG_NG3_DU_A-SC70x85-baseline.ttf  # Condensed variant
+└── CLAUDE.md                           # This comprehensive documentation
 ```
+
+## Design Principles
+
+- **Modularity**: Each clock is self-contained with standardized interfaces
+- **Consistency**: Uniform parameter navigation and display across all clocks
+- **Quality**: Pixel-perfect rendering options for sharp visual output
+- **Authenticity**: Real-world inspired designs (U1 watch, LED displays, digital fonts)
+- **Performance**: Optimized update rates and efficient rendering
+- **Accessibility**: Clear visual hierarchy and intuitive controls
+
+## Recent Enhancements
+
+- **Advanced Color System**: Dynamic accent color calculation with authentic U1 support
+- **Rendering Modes**: User-selectable crisp/pixelated options for optimal display quality
+- **Realistic LED Spacing**: Proper 7-segment module gaps based on hardware standards
+- **System Font Integration**: Cross-platform monospace font support
+- **Parameter Auto-Hide**: Clean interface with context-sensitive displays
+- **Improved Ratios**: Optimized 20:14 time-to-date proportions for readability
+
+This architecture provides a solid foundation for adding new clock types while maintaining consistency and quality across the entire application.

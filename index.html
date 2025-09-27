@@ -33,33 +33,19 @@
 
         #help-overlay {
             position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.8);
+            top: 20px;
+            left: 20px;
             color: #00ff00;
-            padding: 20px;
-            border-radius: 8px;
-            font-family: Arial, sans-serif;
             font-size: 14px;
             z-index: 2000;
-            text-align: center;
+            font-family: 'Courier New', Courier, monospace;
+            opacity: 0.9;
+            white-space: pre;
+            line-height: 1.4;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 8px;
+            border-radius: 4px;
             display: none;
-        }
-
-        #help-overlay h3 {
-            margin: 0 0 10px 0;
-            color: #00ff00;
-        }
-
-        #help-overlay ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        #help-overlay li {
-            margin: 5px 0;
         }
 
         canvas {
@@ -72,28 +58,26 @@
     <div id="clock-container"></div>
     <div id="clock-number">1</div>
 
-    <div id="help-overlay">
-        <h3>MultiClock Controls</h3>
-        <ul>
-            <li>1,2,3: Switch clocks</li>
-            <li>↑↓: Navigate parameters</li>
-            <li>←→: Change values</li>
-            <li>F: Toggle fullscreen</li>
-            <li>H: Show this help</li>
-        </ul>
-    </div>
+    <div id="help-overlay">MultiClock Controls
+1: Analog Clock
+2: Digital Clock
+3: 7-Segment LED
+↑↓: Navigate parameters
+←→: Change values
+F: Toggle fullscreen
+H: Show this help</div>
 
     <script type="module">
         import { AnalogClock } from './clocks/1_analog-clock.js';
         import { DigitalClock } from './clocks/2_digital-clock.js';
-        import { DigitalAsciiArtClock } from './clocks/3_digital-ascii-art.js';
+        import { SevenSegmentLedClock } from './clocks/3_7segment-led.js';
 
         class MultiClock {
             constructor() {
                 this.clocks = [
                     { name: 'Analog', class: AnalogClock },
                     { name: 'Digital', class: DigitalClock },
-                    { name: 'Digital ASCII Art', class: DigitalAsciiArtClock }
+                    { name: '7-Segment LED', class: SevenSegmentLedClock }
                 ];
                 this.currentClockIndex = 0;
                 this.currentClockInstance = null;
