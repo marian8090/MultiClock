@@ -71,6 +71,7 @@ H: Show this help</div>
         import { AnalogClock } from './clocks/1_analog-clock.js';
         import { DigitalClock } from './clocks/2_digital-clock.js';
         import { SevenSegmentLedClock } from './clocks/3_7segment-led.js';
+        import { SettingsSync } from './js/settings-sync.js';
 
         class MultiClock {
             constructor() {
@@ -85,9 +86,123 @@ H: Show this help</div>
                 this.clockNumberDisplay = document.getElementById('clock-number');
                 this.helpOverlay = document.getElementById('help-overlay');
                 this.helpTimeout = null;
+                this.isReceivingSync = false; // Flag to prevent sync loops
+
+                // Initialize synchronization
+                this.sync = new SettingsSync();
+                this.setupSyncCallbacks();
+                this.sync.connect();
 
                 this.setupEventListeners();
                 this.loadClock(0);
+            }
+
+            setupSyncCallbacks() {
+                // Handle incoming clock changes from other clients
+                this.sync.onClockChange((clockIndex) => {
+                    if (!this.isReceivingSync && clockIndex !== this.currentClockIndex) {
+                        this.isReceivingSync = true;
+                        this.switchToClock(clockIndex);
+                        this.isReceivingSync = false;
+                    }
+                });
+
+                // Handle incoming parameter changes from other clients
+                this.sync.onParameterChange((data) => {
+                    if (!this.isReceivingSync &&
+                        data.clockIndex === this.currentClockIndex &&
+                        this.currentClockInstance) {
+                        this.isReceivingSync = true;
+
+                        // Apply the parameter change to current clock
+                        this.applyParameterChange(data.parameter, data.value);
+
+                        this.isReceivingSync = false;
+                    }
+                });
+
+                // Handle full state synchronization
+                this.sync.onStateSync((state) => {
+                    if (!this.isReceivingSync) {
+                        this.isReceivingSync = true;
+
+                        // Switch to the synchronized clock if different
+                        if (state.clockIndex !== this.currentClockIndex) {
+                            this.switchToClock(state.clockIndex);
+                        }
+
+                        // Apply saved settings for current clock
+                        if (this.currentClockInstance && state.clockSettings) {
+                            const clockKey = `clock_${this.currentClockIndex}`;
+                            const settings = state.clockSettings[clockKey];
+                            if (settings) {
+                                this.sync.applyClockParameters(this.currentClockInstance, settings);
+                            }
+                        }
+
+                        this.isReceivingSync = false;
+                    }
+                });
+
+                // Handle connection status changes
+                this.sync.onConnectionChange((connected) => {
+                    console.log(connected ? 'Sync connected' : 'Sync disconnected');
+                });
+            }
+
+            applyParameterChange(parameter, value) {
+                if (!this.currentClockInstance) return;
+
+                switch (parameter) {
+                    case 'SIZE':
+                        if (this.currentClockInstance.currentSizeMultiplier !== undefined) {
+                            this.currentClockInstance.currentSizeMultiplier = value;
+                            if (this.currentClockInstance.updateSize) {
+                                this.currentClockInstance.updateSize();
+                            }
+                        }
+                        break;
+                    case 'COLOR':
+                        if (this.currentClockInstance.currentColor !== undefined) {
+                            this.currentClockInstance.currentColor = value;
+                            if (this.currentClockInstance.updateColor) {
+                                this.currentClockInstance.updateColor();
+                            }
+                        }
+                        break;
+                    case 'FONT':
+                        if (this.currentClockInstance.currentFont !== undefined) {
+                            this.currentClockInstance.currentFont = value;
+                            if (this.currentClockInstance.updateFont) {
+                                this.currentClockInstance.updateFont();
+                            }
+                        }
+                        break;
+                    case 'FONTSIZE':
+                        if (this.currentClockInstance.currentFontSizeMultiplier !== undefined) {
+                            this.currentClockInstance.currentFontSizeMultiplier = value;
+                            if (this.currentClockInstance.updateFontSize) {
+                                this.currentClockInstance.updateFontSize();
+                            }
+                        }
+                        break;
+                    case 'FONT COLOUR':
+                        if (this.currentClockInstance.currentColor !== undefined) {
+                            this.currentClockInstance.currentColor = value;
+                            if (this.currentClockInstance.updateColor) {
+                                this.currentClockInstance.updateColor();
+                            }
+                        }
+                        break;
+                    case 'RENDERER':
+                        if (this.currentClockInstance.currentRenderMode !== undefined) {
+                            this.currentClockInstance.currentRenderMode = value;
+                            if (this.currentClockInstance.updateRenderMode) {
+                                this.currentClockInstance.updateRenderMode();
+                            }
+                        }
+                        break;
+                }
             }
 
             setupEventListeners() {
@@ -163,14 +278,82 @@ H: Show this help</div>
                 try {
                     await this.currentClockInstance.init(this.container);
                     this.updateClockNumber();
+
+                    // Set up sync integration for the new clock instance
+                    this.setupClockSync(this.currentClockInstance);
                 } catch (error) {
                     console.error('Failed to load clock:', error);
+                }
+            }
+
+            setupClockSync(clockInstance) {
+                if (!clockInstance || !this.sync) return;
+
+                // Store reference to MultiClock instance for sync callbacks
+                clockInstance.multiClock = this;
+
+                // Override parameter change methods to broadcast changes
+                const originalChangeParameterLeft = clockInstance.changeParameterLeft?.bind(clockInstance);
+                const originalChangeParameterRight = clockInstance.changeParameterRight?.bind(clockInstance);
+
+                if (originalChangeParameterLeft) {
+                    clockInstance.changeParameterLeft = () => {
+                        originalChangeParameterLeft();
+                        this.broadcastCurrentParameter();
+                    };
+                }
+
+                if (originalChangeParameterRight) {
+                    clockInstance.changeParameterRight = () => {
+                        originalChangeParameterRight();
+                        this.broadcastCurrentParameter();
+                    };
+                }
+            }
+
+            broadcastCurrentParameter() {
+                if (!this.currentClockInstance || !this.sync || this.isReceivingSync) return;
+
+                const parameter = this.currentClockInstance.parameters?.[this.currentClockInstance.currentParameterIndex];
+                if (!parameter) return;
+
+                let value;
+                switch (parameter) {
+                    case 'SIZE':
+                        value = this.currentClockInstance.currentSizeMultiplier;
+                        break;
+                    case 'COLOR':
+                        value = this.currentClockInstance.currentColor;
+                        break;
+                    case 'FONT':
+                        value = this.currentClockInstance.currentFont;
+                        break;
+                    case 'FONTSIZE':
+                        value = this.currentClockInstance.currentFontSizeMultiplier;
+                        break;
+                    case 'FONT COLOUR':
+                        value = this.currentClockInstance.currentColor;
+                        break;
+                    case 'RENDERER':
+                        value = this.currentClockInstance.currentRenderMode;
+                        break;
+                    default:
+                        return;
+                }
+
+                if (value !== undefined) {
+                    this.sync.broadcastParameterChange(this.currentClockIndex, parameter, value);
                 }
             }
 
             switchToClock(index) {
                 if (index !== this.currentClockIndex) {
                     this.loadClock(index);
+
+                    // Broadcast clock change to other clients (only if not receiving sync)
+                    if (!this.isReceivingSync && this.sync) {
+                        this.sync.broadcastClockChange(index);
+                    }
                 }
             }
 
