@@ -1,6 +1,6 @@
 export class SettingsSync {
     constructor(options = {}) {
-        this.serverUrl = options.serverUrl || 'ws://localhost:8080';
+        this.serverUrl = options.serverUrl || 'ws://192.168.1.220:8080';
         this.websocket = null;
         this.reconnectInterval = 3000; // 3 seconds
         this.reconnectTimer = null;

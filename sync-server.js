@@ -167,8 +167,9 @@ class MultiClockSyncServer {
     }
 
     start() {
-        this.httpServer.listen(this.port, () => {
-            console.log(`MultiClock Sync Server running on http://localhost:${this.port}`);
+        this.httpServer.listen(this.port, '0.0.0.0', () => {
+            console.log(`MultiClock Sync Server running on http://0.0.0.0:${this.port}`);
+            console.log(`Access from local network: http://192.168.1.220:${this.port}`);
             console.log('WebSocket server ready for connections');
         });
     }
