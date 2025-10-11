@@ -60,12 +60,23 @@ export class AviationClock {
 
         container.appendChild(this.app.canvas);
 
-        this.app.ticker.maxFPS = 8;
+        this.updateFPS();
 
         this.buildClock();
         this.createParameterDisplay();
         this.setupEventListeners();
         this.startAnimation();
+    }
+
+    updateFPS() {
+        const secondsHandMode = this.secondsHandModes[this.currentSecondsHandMode].value;
+        if (secondsHandMode === '60hz') {
+            this.app.ticker.maxFPS = 60;
+            console.log('Aviation Clock: Set to 60 FPS for smooth 60Hz second hand');
+        } else {
+            this.app.ticker.maxFPS = 8;
+            console.log('Aviation Clock: Set to 8 FPS for standard mode');
+        }
     }
 
     buildClock() {
@@ -338,6 +349,7 @@ export class AviationClock {
                 break;
             case 'SECONDS HAND':
                 this.currentSecondsHandMode = (this.currentSecondsHandMode - 1 + this.secondsHandModes.length) % this.secondsHandModes.length;
+                this.updateFPS();
                 this.buildClock();
                 break;
         }
@@ -359,6 +371,7 @@ export class AviationClock {
                 break;
             case 'SECONDS HAND':
                 this.currentSecondsHandMode = (this.currentSecondsHandMode + 1) % this.secondsHandModes.length;
+                this.updateFPS();
                 this.buildClock();
                 break;
         }
