@@ -45,14 +45,17 @@ The application uses a modular ES6 module system with a robust parameter managem
    - 8 FPS update rate for smooth animation
 
 5. **DSEG Clock** (`clocks/5_dseg-clock.js`):
-   - Professional 7-segment display using DSEG font family
-   - **Fonts**: DSEG7-Classic and DSEG7-Modern variants
-   - **Parameters**: FONT (Classic/Modern), STYLE (6 weight variants), FONTSIZE (20%-500%), FONT COLOUR (7 colors), RENDERER (3 modes)
+   - Professional 7/14-segment display using DSEG font family
+   - **Fonts**: DSEG7 (numeric) for time/date, DSEG14 (alphanumeric) for weekday
+   - **Font Types**: Classic and Modern variants
+   - **Parameters**: FONT (Classic/Modern), STYLE (6 weight variants), TIME FONTSIZE (8pt-288pt), DATE FONTSIZE (8pt-288pt), FONT COLOUR (7 colors), RENDERER (3 modes), SECONDS (Show/Hide), WEEKDAY (Show/Hide)
    - **Style Variants**: Light, Light Italic, Regular, Italic (default), Bold, Bold Italic
-   - **Default**: White color with Italic style
-   - **Ratio**: 20:14 time-to-date size ratio
-   - **Font Loading**: Dynamic loading of 12 DSEG7 font variants via @font-face
-   - **Future Ready**: DSEG14 fonts included for future alphanumeric display extensions
+   - **Font Sizes**: 20 sizes from 8pt to 288pt (8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 96, 144, 200, 288)
+   - **Default**: White color, Italic style, 72pt time, 48pt date, seconds shown, weekday shown
+   - **Weekday Display**: Full day names (Sunday-Saturday) using DSEG14 fonts, positioned between time and date
+   - **Seconds Options**: Show HH:MM:SS or hide with blinking colon at 1Hz
+   - **Font Loading**: Dynamic loading of 24 font variants (12 DSEG7 + 12 DSEG14) via @font-face
+   - **Independent Sizing**: Time and date font sizes fully independent with MS Word-like point sizes
 
 ### User Controls
 
@@ -107,7 +110,7 @@ Each clock implements a standardized parameter interface:
   - Clock 2: Font, Font Size, Color, Renderer
   - Clock 3: Font Size, Color, Renderer
   - Clock 4: Size, Color, Seconds Hand Mode
-  - Clock 5: Font Type, Font Style, Font Size, Color, Renderer
+  - Clock 5: Font Type, Font Style, Time Font Size, Date Font Size, Color, Renderer, Seconds Display, Weekday Display
 - **Storage Keys**: Prefixed with `multiclock_` to avoid conflicts
 - **Last Clock**: Last viewed clock automatically restored on page load
 

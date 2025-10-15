@@ -2,6 +2,7 @@ export class DSEGClock {
     constructor() {
         this.container = null;
         this.clockElement = null;
+        this.weekdayElement = null;
         this.dateElement = null;
         this.updateInterval = null;
         this.styleElement = null;
@@ -40,18 +41,38 @@ export class DSEGClock {
             { name: 'Pixelated', value: 'pixelated' }
         ];
 
+        // Available seconds display modes
+        this.secondsDisplayModes = [
+            { name: 'Show', value: 'show' },
+            { name: 'Hide', value: 'hide' }
+        ];
+
+        // Available weekday display modes
+        this.weekdayDisplayModes = [
+            { name: 'Show', value: 'show' },
+            { name: 'Hide', value: 'hide' }
+        ];
+
+        // Available font sizes (in points, like MS Word)
+        this.timeFontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 96, 144, 200, 288];
+        this.dateFontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 96, 144, 200, 288];
+
         // Parameters
-        this.parameters = ['FONT', 'STYLE', 'FONTSIZE', 'FONT COLOUR', 'RENDERER'];
+        this.parameters = ['FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY'];
         this.currentParameterIndex = 0;
 
         // Current settings
-        this.baseTimeFontSize = 19.5; // vmin
-        this.baseDateFontSize = 13.65; // vmin (20:14 ratio)
-        this.currentFontSizeMultiplier = 1.0;
         this.currentFontType = 0; // Classic by default
         this.currentFontStyle = 3; // Italic by default
+        this.currentTimeFontSizeIndex = 15; // 72pt by default
+        this.currentDateFontSizeIndex = 14; // 48pt by default
         this.currentColor = 6; // White by default
         this.currentRenderMode = 0; // Smooth by default
+        this.currentSecondsDisplay = 0; // Show by default
+        this.currentWeekdayDisplay = 0; // Show by default
+
+        // Colon blink state
+        this.colonVisible = true;
 
         // Parameter display element
         this.parameterDisplay = null;
@@ -87,9 +108,12 @@ export class DSEGClock {
         const settings = {
             currentFontType: this.currentFontType,
             currentFontStyle: this.currentFontStyle,
-            currentFontSizeMultiplier: this.currentFontSizeMultiplier,
+            currentTimeFontSizeIndex: this.currentTimeFontSizeIndex,
+            currentDateFontSizeIndex: this.currentDateFontSizeIndex,
             currentColor: this.currentColor,
-            currentRenderMode: this.currentRenderMode
+            currentRenderMode: this.currentRenderMode,
+            currentSecondsDisplay: this.currentSecondsDisplay,
+            currentWeekdayDisplay: this.currentWeekdayDisplay
         };
         console.log('[DSEGClock] getSettings() returning:', settings);
         return settings;
@@ -107,9 +131,13 @@ export class DSEGClock {
             console.log('[DSEGClock] Setting currentFontStyle to:', settings.currentFontStyle);
             this.currentFontStyle = settings.currentFontStyle;
         }
-        if (settings.currentFontSizeMultiplier !== undefined && settings.currentFontSizeMultiplier >= 0.2 && settings.currentFontSizeMultiplier <= 5.0) {
-            console.log('[DSEGClock] Setting currentFontSizeMultiplier to:', settings.currentFontSizeMultiplier);
-            this.currentFontSizeMultiplier = settings.currentFontSizeMultiplier;
+        if (settings.currentTimeFontSizeIndex !== undefined && settings.currentTimeFontSizeIndex >= 0 && settings.currentTimeFontSizeIndex < this.timeFontSizes.length) {
+            console.log('[DSEGClock] Setting currentTimeFontSizeIndex to:', settings.currentTimeFontSizeIndex);
+            this.currentTimeFontSizeIndex = settings.currentTimeFontSizeIndex;
+        }
+        if (settings.currentDateFontSizeIndex !== undefined && settings.currentDateFontSizeIndex >= 0 && settings.currentDateFontSizeIndex < this.dateFontSizes.length) {
+            console.log('[DSEGClock] Setting currentDateFontSizeIndex to:', settings.currentDateFontSizeIndex);
+            this.currentDateFontSizeIndex = settings.currentDateFontSizeIndex;
         }
         if (settings.currentColor !== undefined && settings.currentColor >= 0 && settings.currentColor < this.colors.length) {
             console.log('[DSEGClock] Setting currentColor to:', settings.currentColor);
@@ -119,8 +147,16 @@ export class DSEGClock {
             console.log('[DSEGClock] Setting currentRenderMode to:', settings.currentRenderMode);
             this.currentRenderMode = settings.currentRenderMode;
         }
+        if (settings.currentSecondsDisplay !== undefined && settings.currentSecondsDisplay >= 0 && settings.currentSecondsDisplay < this.secondsDisplayModes.length) {
+            console.log('[DSEGClock] Setting currentSecondsDisplay to:', settings.currentSecondsDisplay);
+            this.currentSecondsDisplay = settings.currentSecondsDisplay;
+        }
+        if (settings.currentWeekdayDisplay !== undefined && settings.currentWeekdayDisplay >= 0 && settings.currentWeekdayDisplay < this.weekdayDisplayModes.length) {
+            console.log('[DSEGClock] Setting currentWeekdayDisplay to:', settings.currentWeekdayDisplay);
+            this.currentWeekdayDisplay = settings.currentWeekdayDisplay;
+        }
 
-        console.log('[DSEGClock] loadSettings() complete. Final values - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentFontSizeMultiplier:', this.currentFontSizeMultiplier, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode);
+        console.log('[DSEGClock] loadSettings() complete. Final values - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentTimeFontSizeIndex:', this.currentTimeFontSizeIndex, 'currentDateFontSizeIndex:', this.currentDateFontSizeIndex, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode, 'currentSecondsDisplay:', this.currentSecondsDisplay, 'currentWeekdayDisplay:', this.currentWeekdayDisplay);
     }
 
     // Save current settings
@@ -137,27 +173,31 @@ export class DSEGClock {
     }
 
     updateStyles() {
-        // Generate @font-face declarations for all DSEG7 variants
+        // Generate @font-face declarations for all DSEG7 and DSEG14 variants
         const fontFaces = this.generateFontFaces();
 
         const currentColor = this.colors[this.currentColor].value;
         const renderMode = this.renderModes[this.currentRenderMode].value;
 
-        let clockFontSize = this.baseTimeFontSize * this.currentFontSizeMultiplier;
-        let dateFontSize = this.baseDateFontSize * this.currentFontSizeMultiplier;
+        // Convert point sizes to vmin (1pt ≈ 0.13889vmin)
+        let clockFontSize = this.timeFontSizes[this.currentTimeFontSizeIndex] * 0.13889;
+        let dateFontSize = this.dateFontSizes[this.currentDateFontSizeIndex] * 0.13889;
+        let weekdayFontSize = dateFontSize; // Same size as date
 
         // Apply pixel-perfect rounding for crisp and pixelated modes
         if (renderMode === 'crisp' || renderMode === 'pixelated') {
             const vminToPx = Math.min(window.innerWidth, window.innerHeight) / 100;
             clockFontSize = Math.round(clockFontSize * vminToPx) / vminToPx;
             dateFontSize = Math.round(dateFontSize * vminToPx) / vminToPx;
+            weekdayFontSize = Math.round(weekdayFontSize * vminToPx) / vminToPx;
         }
 
         // Generate rendering CSS based on mode
         const renderingCSS = this.getRenderingCSS(renderMode);
 
-        // Get current font family name
+        // Get current font family names
         const fontFamily = this.getCurrentFontFamily();
+        const weekdayFontFamily = this.getCurrentWeekdayFontFamily();
 
         this.styleElement.textContent = `
             ${fontFaces}
@@ -192,6 +232,15 @@ export class DSEGClock {
                 ${renderingCSS.text}
             }
 
+            .dseg-weekday {
+                font-size: ${weekdayFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0.05em;
+                margin-bottom: 0.5em;
+                font-family: '${weekdayFontFamily}', monospace;
+                ${renderingCSS.text}
+            }
+
             .dseg-date {
                 font-size: ${dateFontSize}vmin;
                 font-weight: normal;
@@ -220,7 +269,7 @@ export class DSEGClock {
     generateFontFaces() {
         const fontFaces = [];
 
-        // Generate font-face for Classic variants
+        // Generate font-face for DSEG7 Classic variants
         this.fontStyles.forEach(style => {
             const fontName = `DSEG7Classic-${style.value}`;
             fontFaces.push(`
@@ -231,13 +280,35 @@ export class DSEGClock {
             `);
         });
 
-        // Generate font-face for Modern variants
+        // Generate font-face for DSEG7 Modern variants
         this.fontStyles.forEach(style => {
             const fontName = `DSEG7Modern-${style.value}`;
             fontFaces.push(`
                 @font-face {
                     font-family: '${fontName}';
                     src: url('fonts/fonts-DSEG_v046/DSEG7-Modern/DSEG7Modern-${style.value}.ttf') format('truetype');
+                }
+            `);
+        });
+
+        // Generate font-face for DSEG14 Classic variants (for weekday)
+        this.fontStyles.forEach(style => {
+            const fontName = `DSEG14Classic-${style.value}`;
+            fontFaces.push(`
+                @font-face {
+                    font-family: '${fontName}';
+                    src: url('fonts/fonts-DSEG_v046/DSEG14-Classic/DSEG14Classic-${style.value}.ttf') format('truetype');
+                }
+            `);
+        });
+
+        // Generate font-face for DSEG14 Modern variants (for weekday)
+        this.fontStyles.forEach(style => {
+            const fontName = `DSEG14Modern-${style.value}`;
+            fontFaces.push(`
+                @font-face {
+                    font-family: '${fontName}';
+                    src: url('fonts/fonts-DSEG_v046/DSEG14-Modern/DSEG14Modern-${style.value}.ttf') format('truetype');
                 }
             `);
         });
@@ -250,6 +321,13 @@ export class DSEGClock {
         const fontStyle = this.fontStyles[this.currentFontStyle].value;
         const fontTypeCapitalized = fontType.charAt(0).toUpperCase() + fontType.slice(1);
         return `DSEG7${fontTypeCapitalized}-${fontStyle}`;
+    }
+
+    getCurrentWeekdayFontFamily() {
+        const fontType = this.fontTypes[this.currentFontType].value;
+        const fontStyle = this.fontStyles[this.currentFontStyle].value;
+        const fontTypeCapitalized = fontType.charAt(0).toUpperCase() + fontType.slice(1);
+        return `DSEG14${fontTypeCapitalized}-${fontStyle}`;
     }
 
     getRenderingCSS(renderMode) {
@@ -287,10 +365,14 @@ export class DSEGClock {
         this.clockElement = document.createElement('div');
         this.clockElement.className = 'dseg-time';
 
+        this.weekdayElement = document.createElement('div');
+        this.weekdayElement.className = 'dseg-weekday';
+
         this.dateElement = document.createElement('div');
         this.dateElement.className = 'dseg-date';
 
         display.appendChild(this.clockElement);
+        display.appendChild(this.weekdayElement);
         display.appendChild(this.dateElement);
         clockContainer.appendChild(display);
 
@@ -315,14 +397,23 @@ export class DSEGClock {
             case 'STYLE':
                 value = this.fontStyles[this.currentFontStyle].name;
                 break;
-            case 'FONTSIZE':
-                value = Math.round(this.currentFontSizeMultiplier * 100) + '%';
+            case 'TIME FONTSIZE':
+                value = this.timeFontSizes[this.currentTimeFontSizeIndex] + 'pt';
+                break;
+            case 'DATE FONTSIZE':
+                value = this.dateFontSizes[this.currentDateFontSizeIndex] + 'pt';
                 break;
             case 'FONT COLOUR':
                 value = this.colors[this.currentColor].name;
                 break;
             case 'RENDERER':
                 value = this.renderModes[this.currentRenderMode].name;
+                break;
+            case 'SECONDS':
+                value = this.secondsDisplayModes[this.currentSecondsDisplay].name;
+                break;
+            case 'WEEKDAY':
+                value = this.weekdayDisplayModes[this.currentWeekdayDisplay].name;
                 break;
         }
 
@@ -351,14 +442,23 @@ export class DSEGClock {
             case 'STYLE':
                 value = this.fontStyles[this.currentFontStyle].name;
                 break;
-            case 'FONTSIZE':
-                value = Math.round(this.currentFontSizeMultiplier * 100) + '%';
+            case 'TIME FONTSIZE':
+                value = this.timeFontSizes[this.currentTimeFontSizeIndex] + 'pt';
+                break;
+            case 'DATE FONTSIZE':
+                value = this.dateFontSizes[this.currentDateFontSizeIndex] + 'pt';
                 break;
             case 'FONT COLOUR':
                 value = this.colors[this.currentColor].name;
                 break;
             case 'RENDERER':
                 value = this.renderModes[this.currentRenderMode].name;
+                break;
+            case 'SECONDS':
+                value = this.secondsDisplayModes[this.currentSecondsDisplay].name;
+                break;
+            case 'WEEKDAY':
+                value = this.weekdayDisplayModes[this.currentWeekdayDisplay].name;
                 break;
         }
 
@@ -393,8 +493,12 @@ export class DSEGClock {
                 this.currentFontStyle = (this.currentFontStyle - 1 + this.fontStyles.length) % this.fontStyles.length;
                 this.updateStyles();
                 break;
-            case 'FONTSIZE':
-                this.currentFontSizeMultiplier = Math.max(0.2, this.currentFontSizeMultiplier / 1.2);
+            case 'TIME FONTSIZE':
+                this.currentTimeFontSizeIndex = (this.currentTimeFontSizeIndex - 1 + this.timeFontSizes.length) % this.timeFontSizes.length;
+                this.updateStyles();
+                break;
+            case 'DATE FONTSIZE':
+                this.currentDateFontSizeIndex = (this.currentDateFontSizeIndex - 1 + this.dateFontSizes.length) % this.dateFontSizes.length;
                 this.updateStyles();
                 break;
             case 'FONT COLOUR':
@@ -404,6 +508,12 @@ export class DSEGClock {
             case 'RENDERER':
                 this.currentRenderMode = (this.currentRenderMode - 1 + this.renderModes.length) % this.renderModes.length;
                 this.updateStyles();
+                break;
+            case 'SECONDS':
+                this.currentSecondsDisplay = (this.currentSecondsDisplay - 1 + this.secondsDisplayModes.length) % this.secondsDisplayModes.length;
+                break;
+            case 'WEEKDAY':
+                this.currentWeekdayDisplay = (this.currentWeekdayDisplay - 1 + this.weekdayDisplayModes.length) % this.weekdayDisplayModes.length;
                 break;
         }
 
@@ -423,8 +533,12 @@ export class DSEGClock {
                 this.currentFontStyle = (this.currentFontStyle + 1) % this.fontStyles.length;
                 this.updateStyles();
                 break;
-            case 'FONTSIZE':
-                this.currentFontSizeMultiplier = Math.min(5.0, this.currentFontSizeMultiplier * 1.2);
+            case 'TIME FONTSIZE':
+                this.currentTimeFontSizeIndex = (this.currentTimeFontSizeIndex + 1) % this.timeFontSizes.length;
+                this.updateStyles();
+                break;
+            case 'DATE FONTSIZE':
+                this.currentDateFontSizeIndex = (this.currentDateFontSizeIndex + 1) % this.dateFontSizes.length;
                 this.updateStyles();
                 break;
             case 'FONT COLOUR':
@@ -435,6 +549,12 @@ export class DSEGClock {
                 this.currentRenderMode = (this.currentRenderMode + 1) % this.renderModes.length;
                 this.updateStyles();
                 break;
+            case 'SECONDS':
+                this.currentSecondsDisplay = (this.currentSecondsDisplay + 1) % this.secondsDisplayModes.length;
+                break;
+            case 'WEEKDAY':
+                this.currentWeekdayDisplay = (this.currentWeekdayDisplay + 1) % this.weekdayDisplayModes.length;
+                break;
         }
 
         this.saveSettings();
@@ -443,12 +563,34 @@ export class DSEGClock {
 
     updateClock() {
         const now = new Date();
-        const timeString = now.toLocaleTimeString('en-US', {
-            hour12: false,
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit'
-        });
+        const secondsMode = this.secondsDisplayModes[this.currentSecondsDisplay].value;
+        const weekdayMode = this.weekdayDisplayModes[this.currentWeekdayDisplay].value;
+
+        let timeString;
+        if (secondsMode === 'show') {
+            // Show seconds
+            timeString = now.toLocaleTimeString('en-US', {
+                hour12: false,
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        } else {
+            // Hide seconds, but blink colon at 1Hz
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = now.getSeconds();
+
+            // Toggle colon visibility every second
+            this.colonVisible = (seconds % 2 === 0);
+            const separator = this.colonVisible ? ':' : ' ';
+
+            timeString = `${hours}${separator}${minutes}`;
+        }
+
+        // Weekday display
+        const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const weekdayString = weekdayNames[now.getDay()];
 
         const day = String(now.getDate()).padStart(2, '0');
         const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -456,6 +598,16 @@ export class DSEGClock {
         const dateString = `${day}.${month}.${year}`;
 
         this.clockElement.textContent = timeString;
+
+        // Show or hide weekday based on setting
+        if (weekdayMode === 'show') {
+            this.weekdayElement.textContent = weekdayString;
+            this.weekdayElement.style.display = 'block';
+        } else {
+            this.weekdayElement.textContent = '';
+            this.weekdayElement.style.display = 'none';
+        }
+
         this.dateElement.textContent = dateString;
     }
 
