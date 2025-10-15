@@ -38,9 +38,25 @@ The application uses a modular ES6 module system with a robust parameter managem
    - **Default**: Green color for authentic LED appearance
    - **Ratio**: 20:14 time-to-date size ratio
 
+4. **Slim Analog Clock** (`clocks/4_aviation-clock.js`):
+   - Aviation-style slim analog clock with PixiJS rendering
+   - Minimalist design inspired by aircraft instruments
+   - **Parameters**: SIZE (20%-300%), COLOR variations
+   - 8 FPS update rate for smooth animation
+
+5. **DSEG Clock** (`clocks/5_dseg-clock.js`):
+   - Professional 7-segment display using DSEG font family
+   - **Fonts**: DSEG7-Classic and DSEG7-Modern variants
+   - **Parameters**: FONT (Classic/Modern), STYLE (6 weight variants), FONTSIZE (20%-500%), FONT COLOUR (7 colors), RENDERER (3 modes)
+   - **Style Variants**: Light, Light Italic, Regular, Italic (default), Bold, Bold Italic
+   - **Default**: White color with Italic style
+   - **Ratio**: 20:14 time-to-date size ratio
+   - **Font Loading**: Dynamic loading of 12 DSEG7 font variants via @font-face
+   - **Future Ready**: DSEG14 fonts included for future alphanumeric display extensions
+
 ### User Controls
 
-- **Number Keys (1, 2, 3)**: Direct selection of clock styles
+- **Number Keys (1, 2, 3, 4, 5)**: Direct selection of clock styles
 - **Arrow Keys (↑/↓)**: Navigate through parameters for selected clock
 - **Arrow Keys (←/→)**: Change parameter values
 - **F**: Toggle fullscreen mode
@@ -56,7 +72,7 @@ Each clock implements a standardized parameter interface:
 
 ### Advanced Features
 
-#### Rendering Modes (Clocks 2 & 3)
+#### Rendering Modes (Clocks 2, 3 & 5)
 - **Smooth**: Default CSS rendering with antialiasing
 - **Crisp**: Sharp edges with disabled font smoothing for clarity
 - **Pixelated**: Pixel-perfect rendering with no sub-pixel artifacts
@@ -66,10 +82,18 @@ Each clock implements a standardized parameter interface:
 - **System Fonts**: Courier New, Monaco, Consolas, Lucida Console, DejaVu Sans Mono, Source Code Pro
 - **Smart Loading**: TTF files loaded via @font-face, system fonts use CSS font stacks
 
-#### Color Coordination (Clock 1)
+#### Color Coordination (Clock 1 & 4)
 - **Original U1**: White elements with traditional red accents
 - **Color Variants**: Main color with mathematically calculated darker accents (60% intensity)
 - **Consistent Borders**: Black outlines on all hands for optimal contrast
+
+#### DSEG Font System (Clock 5)
+- **DSEG7 Fonts**: Professional 7-segment display fonts with Classic and Modern variants
+- **Weight Options**: 6 style variants (Light, Light Italic, Regular, Italic, Bold, Bold Italic)
+- **Font Path**: `fonts/fonts-DSEG_v046/DSEG7-{Classic|Modern}/`
+- **Dynamic Loading**: All 12 variants loaded via @font-face, switched dynamically based on parameters
+- **DSEG14 Available**: 14-segment fonts included for future alphanumeric extensions
+- **Format Support**: TTF, WOFF, and WOFF2 formats included for broad compatibility
 
 ## Development
 
@@ -109,9 +133,10 @@ showSelectedValue() { /* Temporarily show selected value */ }
 
 ## Technical Configuration
 
-- **Analog Clock**: 8 FPS, PixiJS with WebGL/Canvas rendering, responsive scaling
-- **Digital Clock**: 1 second updates, CSS-based with font smoothing control
-- **7-Segment LED**: 1 second updates, pure CSS segments with realistic spacing
+- **Analog Clocks (1 & 4)**: 8 FPS, PixiJS with WebGL/Canvas rendering, responsive scaling
+- **Digital Clock (2)**: 1 second updates, CSS-based with font smoothing control
+- **7-Segment LED (3)**: 1 second updates, pure CSS segments with realistic spacing
+- **DSEG Clock (5)**: 1 second updates, DSEG7 font variants with dynamic loading
 - **Fonts**: Custom TTF fonts + system font fallbacks for cross-platform compatibility
 - **Resolution**: Auto-scaling with pixel-perfect options for crisp rendering
 - **Responsive**: All clocks support fullscreen and window resizing
@@ -124,12 +149,20 @@ MultiClock/
 ├── clocks/
 │   ├── 1_analog-clock.js               # PixiJS analog clock with color system
 │   ├── 2_digital-clock.js              # CSS digital clock with fonts & rendering
-│   └── 3_7segment-led.js               # 7-segment LED display simulation
+│   ├── 3_7segment-led.js               # 7-segment LED display simulation
+│   ├── 4_aviation-clock.js             # Slim aviation-style analog clock
+│   └── 5_dseg-clock.js                 # DSEG 7-segment font clock
 ├── fonts/
 │   ├── PMDG_NG3_DU_A.ttf              # Aviation-style digital font
 │   ├── AppleII-PrintChar21.ttf        # Retro computer font
 │   ├── Perfect DOS VGA 437.ttf        # DOS/VGA style font
-│   └── PMDG_NG3_DU_A-SC70x85-baseline.ttf  # Condensed variant
+│   ├── PMDG_NG3_DU_A-SC70x85-baseline.ttf  # Condensed variant
+│   ├── PMDG_NG3_LCD_9seg.ttf          # 9-segment LCD font
+│   └── fonts-DSEG_v046/               # DSEG font family directory
+│       ├── DSEG7-Classic/             # Classic 7-segment variants (6 styles)
+│       ├── DSEG7-Modern/              # Modern 7-segment variants (6 styles)
+│       ├── DSEG14-Classic/            # Classic 14-segment variants (for future use)
+│       └── DSEG14-Modern/             # Modern 14-segment variants (for future use)
 └── CLAUDE.md                           # This comprehensive documentation
 ```
 
@@ -150,5 +183,8 @@ MultiClock/
 - **System Font Integration**: Cross-platform monospace font support
 - **Parameter Auto-Hide**: Clean interface with context-sensitive displays
 - **Improved Ratios**: Optimized 20:14 time-to-date proportions for readability
+- **DSEG Font Family**: Professional 7-segment display fonts with 12 variant combinations (Clock 5)
+- **Aviation Clock**: Slim analog clock inspired by aircraft instruments (Clock 4)
+- **Dynamic Font Loading**: Runtime font switching with multiple weight and style options
 
 This architecture provides a solid foundation for adding new clock types while maintaining consistency and quality across the entire application.
