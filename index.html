@@ -63,6 +63,7 @@
 2: Digital Clock
 3: 7-Segment LED
 4: Slim Analog
+5: DSEG Clock
 ↑↓: Navigate parameters
 ←→: Change values
 F: Toggle fullscreen
@@ -73,6 +74,7 @@ H: Show this help</div>
         import { DigitalClock } from './clocks/2_digital-clock.js';
         import { SevenSegmentLedClock } from './clocks/3_7segment-led.js';
         import { AviationClock } from './clocks/4_aviation-clock.js';
+        import { DSEGClock } from './clocks/5_dseg-clock.js';
 
         class MultiClock {
             constructor() {
@@ -80,7 +82,8 @@ H: Show this help</div>
                     { name: 'Analog', class: AnalogClock },
                     { name: 'Digital', class: DigitalClock },
                     { name: '7-Segment LED', class: SevenSegmentLedClock },
-                    { name: 'Slim Analog', class: AviationClock }
+                    { name: 'Slim Analog', class: AviationClock },
+                    { name: 'DSEG', class: DSEGClock }
                 ];
                 this.currentClockIndex = 0;
                 this.currentClockInstance = null;
@@ -100,6 +103,7 @@ H: Show this help</div>
                         case '2':
                         case '3':
                         case '4':
+                        case '5':
                             const clockIndex = parseInt(event.key) - 1;
                             if (clockIndex >= 0 && clockIndex < this.clocks.length) {
                                 this.switchToClock(clockIndex);
