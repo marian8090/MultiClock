@@ -36,10 +36,26 @@ export class AnalogClock {
         // Parameter display element
         this.parameterDisplay = null;
         this.parameterDisplayTimeout = null;
+
+        // Settings manager (will be set by MultiClock)
+        this.settingsManager = null;
+        this.clockIndex = null;
     }
 
-    async init(container) {
+    async init(container, savedSettings = null) {
         this.container = container;
+
+        console.log('[AnalogClock] init() called with savedSettings:', savedSettings);
+
+        // Load saved settings if available
+        if (savedSettings) {
+            console.log('[AnalogClock] Calling loadSettings() with:', savedSettings);
+            this.loadSettings(savedSettings);
+            console.log('[AnalogClock] After loadSettings() - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor);
+        } else {
+            console.log('[AnalogClock] No saved settings, using defaults');
+        }
+
         this.app = new PIXI.Application();
 
         await this.app.init({
@@ -58,6 +74,39 @@ export class AnalogClock {
         this.createParameterDisplay();
         this.setupEventListeners();
         this.startAnimation();
+    }
+
+    // Get current settings for persistence
+    getSettings() {
+        const settings = {
+            currentSizeMultiplier: this.currentSizeMultiplier,
+            currentColor: this.currentColor
+        };
+        console.log('[AnalogClock] getSettings() returning:', settings);
+        return settings;
+    }
+
+    // Load settings from saved data
+    loadSettings(settings) {
+        console.log('[AnalogClock] loadSettings() called with:', settings);
+
+        if (settings.currentSizeMultiplier !== undefined && settings.currentSizeMultiplier >= 0.2 && settings.currentSizeMultiplier <= 3.0) {
+            console.log('[AnalogClock] Setting currentSizeMultiplier to:', settings.currentSizeMultiplier);
+            this.currentSizeMultiplier = settings.currentSizeMultiplier;
+        }
+        if (settings.currentColor !== undefined && settings.currentColor >= 0 && settings.currentColor < this.colors.length) {
+            console.log('[AnalogClock] Setting currentColor to:', settings.currentColor);
+            this.currentColor = settings.currentColor;
+        }
+
+        console.log('[AnalogClock] loadSettings() complete. Final values - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor);
+    }
+
+    // Save current settings
+    saveSettings() {
+        if (this.settingsManager && this.clockIndex !== null) {
+            this.settingsManager.saveClockSettings(this.clockIndex, this.getSettings());
+        }
     }
 
     buildClock() {
@@ -401,6 +450,7 @@ export class AnalogClock {
                 break;
         }
 
+        this.saveSettings();
         this.showSelectedValue();
     }
 
@@ -418,6 +468,7 @@ export class AnalogClock {
                 break;
         }
 
+        this.saveSettings();
         this.showSelectedValue();
     }
 

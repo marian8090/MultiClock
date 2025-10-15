@@ -56,14 +56,78 @@ export class DSEGClock {
         // Parameter display element
         this.parameterDisplay = null;
         this.parameterDisplayTimeout = null;
+
+        // Settings manager (will be set by MultiClock)
+        this.settingsManager = null;
+        this.clockIndex = null;
     }
 
-    init(container) {
+    init(container, savedSettings = null) {
         this.container = container;
+
+        console.log('[DSEGClock] init() called with savedSettings:', savedSettings);
+
+        // Load saved settings if available
+        if (savedSettings) {
+            console.log('[DSEGClock] Calling loadSettings() with:', savedSettings);
+            this.loadSettings(savedSettings);
+            console.log('[DSEGClock] After loadSettings() - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentFontSizeMultiplier:', this.currentFontSizeMultiplier, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode);
+        } else {
+            console.log('[DSEGClock] No saved settings, using defaults');
+        }
+
         this.createStyles();
         this.createHTML();
         this.createParameterDisplay();
         this.startUpdate();
+    }
+
+    // Get current settings for persistence
+    getSettings() {
+        const settings = {
+            currentFontType: this.currentFontType,
+            currentFontStyle: this.currentFontStyle,
+            currentFontSizeMultiplier: this.currentFontSizeMultiplier,
+            currentColor: this.currentColor,
+            currentRenderMode: this.currentRenderMode
+        };
+        console.log('[DSEGClock] getSettings() returning:', settings);
+        return settings;
+    }
+
+    // Load settings from saved data
+    loadSettings(settings) {
+        console.log('[DSEGClock] loadSettings() called with:', settings);
+
+        if (settings.currentFontType !== undefined && settings.currentFontType >= 0 && settings.currentFontType < this.fontTypes.length) {
+            console.log('[DSEGClock] Setting currentFontType to:', settings.currentFontType);
+            this.currentFontType = settings.currentFontType;
+        }
+        if (settings.currentFontStyle !== undefined && settings.currentFontStyle >= 0 && settings.currentFontStyle < this.fontStyles.length) {
+            console.log('[DSEGClock] Setting currentFontStyle to:', settings.currentFontStyle);
+            this.currentFontStyle = settings.currentFontStyle;
+        }
+        if (settings.currentFontSizeMultiplier !== undefined && settings.currentFontSizeMultiplier >= 0.2 && settings.currentFontSizeMultiplier <= 5.0) {
+            console.log('[DSEGClock] Setting currentFontSizeMultiplier to:', settings.currentFontSizeMultiplier);
+            this.currentFontSizeMultiplier = settings.currentFontSizeMultiplier;
+        }
+        if (settings.currentColor !== undefined && settings.currentColor >= 0 && settings.currentColor < this.colors.length) {
+            console.log('[DSEGClock] Setting currentColor to:', settings.currentColor);
+            this.currentColor = settings.currentColor;
+        }
+        if (settings.currentRenderMode !== undefined && settings.currentRenderMode >= 0 && settings.currentRenderMode < this.renderModes.length) {
+            console.log('[DSEGClock] Setting currentRenderMode to:', settings.currentRenderMode);
+            this.currentRenderMode = settings.currentRenderMode;
+        }
+
+        console.log('[DSEGClock] loadSettings() complete. Final values - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentFontSizeMultiplier:', this.currentFontSizeMultiplier, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode);
+    }
+
+    // Save current settings
+    saveSettings() {
+        if (this.settingsManager && this.clockIndex !== null) {
+            this.settingsManager.saveClockSettings(this.clockIndex, this.getSettings());
+        }
     }
 
     createStyles() {
@@ -343,6 +407,7 @@ export class DSEGClock {
                 break;
         }
 
+        this.saveSettings();
         this.showSelectedValue();
     }
 
@@ -372,6 +437,7 @@ export class DSEGClock {
                 break;
         }
 
+        this.saveSettings();
         this.showSelectedValue();
     }
 

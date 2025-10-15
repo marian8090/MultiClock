@@ -78,9 +78,10 @@ Each clock implements a standardized parameter interface:
 - **Pixelated**: Pixel-perfect rendering with no sub-pixel artifacts
 
 #### Font System (Clock 2)
-- **Custom TTF Fonts**: PMDG_NG3_DU_A variants, AppleII-PrintChar21, Perfect DOS VGA 437
-- **System Fonts**: Courier New, Monaco, Consolas, Lucida Console, DejaVu Sans Mono, Source Code Pro
+- **Custom TTF Fonts**: PMDG_NG3_DU_A variants, AppleII-PrintChar21, Perfect DOS VGA 437, PMDG_NG3_LCD_9seg
+- **System Fonts**: Courier New, Monaco
 - **Smart Loading**: TTF files loaded via @font-face, system fonts use CSS font stacks
+- **Font Count**: 7 total fonts (5 custom TTF + 2 system fonts)
 
 #### Color Coordination (Clock 1 & 4)
 - **Original U1**: White elements with traditional red accents
@@ -95,6 +96,27 @@ Each clock implements a standardized parameter interface:
 - **DSEG14 Available**: 14-segment fonts included for future alphanumeric extensions
 - **Format Support**: TTF, WOFF, and WOFF2 formats included for broad compatibility
 
+#### Settings Persistence
+- **LocalStorage Backend**: All user preferences saved to browser's localStorage
+- **Per-Clock Settings**: Each clock maintains its own independent settings
+- **Auto-Save**: Settings saved automatically when changing parameters or switching clocks
+- **Session Persistence**: Settings retained across browser sessions (closing/reopening tab)
+- **Settings Manager**: Centralized `SettingsManager` class handles all storage operations
+- **Settings Saved**:
+  - Clock 1: Size, Color
+  - Clock 2: Font, Font Size, Color, Renderer
+  - Clock 3: Font Size, Color, Renderer
+  - Clock 4: Size, Color, Seconds Hand Mode
+  - Clock 5: Font Type, Font Style, Font Size, Color, Renderer
+- **Storage Keys**: Prefixed with `multiclock_` to avoid conflicts
+- **Last Clock**: Last viewed clock automatically restored on page load
+
+#### Cache Busting
+- **HTTP Headers**: Meta tags prevent browser from caching HTML
+- **Dynamic Imports**: JavaScript modules loaded with timestamp query parameters
+- **Instant Updates**: All code changes visible immediately on page reload
+- **No Hard Refresh**: Standard F5/Ctrl+R reload sufficient for updates
+
 ## Development
 
 **To run the application:**
@@ -105,14 +127,18 @@ python3 -m http.server 8000
 ```
 
 **To add a new clock:**
-1. Create new clock module in `clocks/` directory with number prefix (e.g., `4_new-clock.js`)
+1. Create new clock module in `clocks/` directory with number prefix (e.g., `6_new-clock.js`)
 2. Implement required methods:
-   - `init(container)` - Initialize clock in provided container
+   - `init(container, savedSettings = null)` - Initialize clock in provided container, load saved settings
    - `destroy()` - Clean up resources and elements
+   - `getSettings()` - Return object with current parameter values for persistence
+   - `loadSettings(settings)` - Apply saved settings to clock parameters
+   - `saveSettings()` - Save current settings via SettingsManager
    - `navigateParameterUp()` / `navigateParameterDown()` - Parameter navigation
-   - `changeParameterLeft()` / `changeParameterRight()` - Parameter value changes
-3. Add to the `clocks` array in `index.html`
-4. Update help text and keyboard controls if needed
+   - `changeParameterLeft()` / `changeParameterRight()` - Parameter value changes (must call saveSettings())
+3. Set `settingsManager` and `clockIndex` properties (set by MultiClock before init)
+4. Add to the `clocks` array in `index.html`
+5. Update help text and keyboard controls if needed
 
 **Parameter Implementation Pattern:**
 ```javascript
@@ -120,16 +146,52 @@ python3 -m http.server 8000
 this.parameters = ['PARAM1', 'PARAM2', 'PARAM3'];
 this.currentParameterIndex = 0;
 
+// Settings manager (will be set by MultiClock)
+this.settingsManager = null;
+this.clockIndex = null;
+
 // Required methods for parameter system
 updateParameterDisplay() { /* Update UI with current parameter */ }
 showSelectedValue() { /* Temporarily show selected value */ }
+
+// Required methods for settings persistence
+getSettings() {
+    return {
+        currentParam1: this.currentParam1,
+        currentParam2: this.currentParam2
+    };
+}
+
+loadSettings(settings) {
+    if (settings.currentParam1 !== undefined) {
+        this.currentParam1 = settings.currentParam1;
+    }
+    if (settings.currentParam2 !== undefined) {
+        this.currentParam2 = settings.currentParam2;
+    }
+}
+
+saveSettings() {
+    if (this.settingsManager && this.clockIndex !== null) {
+        this.settingsManager.saveClockSettings(this.clockIndex, this.getSettings());
+    }
+}
+
+// Call saveSettings() after every parameter change
+changeParameterLeft() {
+    // ... modify parameter ...
+    this.saveSettings();
+    this.showSelectedValue();
+}
 ```
 
 **To test changes:**
 - Modify the relevant module files
-- Refresh the browser to see changes
+- Refresh the browser to see changes (F5/Ctrl+R)
+- Cache-busting ensures immediate updates without hard refresh
 - No build process required
 - Use browser dev tools for debugging
+- Console logging available for settings save/load flow debugging
 
 ## Technical Configuration
 
@@ -177,14 +239,17 @@ MultiClock/
 
 ## Recent Enhancements
 
+- **Settings Persistence**: Full localStorage-based settings persistence across all clocks and browser sessions
+- **Cache Busting**: HTTP headers and dynamic imports with timestamps for instant code updates
 - **Advanced Color System**: Dynamic accent color calculation with authentic U1 support
 - **Rendering Modes**: User-selectable crisp/pixelated options for optimal display quality
 - **Realistic LED Spacing**: Proper 7-segment module gaps based on hardware standards
-- **System Font Integration**: Cross-platform monospace font support
+- **System Font Integration**: Cross-platform monospace font support (optimized font list)
 - **Parameter Auto-Hide**: Clean interface with context-sensitive displays
 - **Improved Ratios**: Optimized 20:14 time-to-date proportions for readability
 - **DSEG Font Family**: Professional 7-segment display fonts with 12 variant combinations (Clock 5)
 - **Aviation Clock**: Slim analog clock inspired by aircraft instruments (Clock 4)
 - **Dynamic Font Loading**: Runtime font switching with multiple weight and style options
+- **Debug Logging**: Comprehensive console logging for settings persistence debugging
 
 This architecture provides a solid foundation for adding new clock types while maintaining consistency and quality across the entire application.

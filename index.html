@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>MultiClock</title>
     <script src="https://pixijs.download/release/pixi.js"></script>
     <style>
@@ -70,11 +73,72 @@ F: Toggle fullscreen
 H: Show this help</div>
 
     <script type="module">
-        import { AnalogClock } from './clocks/1_analog-clock.js';
-        import { DigitalClock } from './clocks/2_digital-clock.js';
-        import { SevenSegmentLedClock } from './clocks/3_7segment-led.js';
-        import { AviationClock } from './clocks/4_aviation-clock.js';
-        import { DSEGClock } from './clocks/5_dseg-clock.js';
+        // Dynamic imports with cache busting
+        const cacheBuster = Date.now();
+        const AnalogClockModule = await import(`./clocks/1_analog-clock.js?v=${cacheBuster}`);
+        const DigitalClockModule = await import(`./clocks/2_digital-clock.js?v=${cacheBuster}`);
+        const SevenSegmentLedClockModule = await import(`./clocks/3_7segment-led.js?v=${cacheBuster}`);
+        const AviationClockModule = await import(`./clocks/4_aviation-clock.js?v=${cacheBuster}`);
+        const DSEGClockModule = await import(`./clocks/5_dseg-clock.js?v=${cacheBuster}`);
+
+        const { AnalogClock } = AnalogClockModule;
+        const { DigitalClock } = DigitalClockModule;
+        const { SevenSegmentLedClock } = SevenSegmentLedClockModule;
+        const { AviationClock } = AviationClockModule;
+        const { DSEGClock } = DSEGClockModule;
+
+        // Settings Manager for persisting user preferences
+        class SettingsManager {
+            constructor() {
+                this.prefix = 'multiclock_';
+            }
+
+            // Save settings for a specific clock
+            saveClockSettings(clockIndex, settings) {
+                try {
+                    const key = `${this.prefix}clock${clockIndex + 1}`;
+                    console.log(`[SettingsManager] Saving settings for clock ${clockIndex + 1}:`, settings);
+                    localStorage.setItem(key, JSON.stringify(settings));
+                    console.log(`[SettingsManager] Successfully saved to localStorage key: ${key}`);
+                } catch (e) {
+                    console.warn('Failed to save clock settings:', e);
+                }
+            }
+
+            // Load settings for a specific clock
+            loadClockSettings(clockIndex) {
+                try {
+                    const key = `${this.prefix}clock${clockIndex + 1}`;
+                    const saved = localStorage.getItem(key);
+                    const parsed = saved ? JSON.parse(saved) : null;
+                    console.log(`[SettingsManager] Loading settings for clock ${clockIndex + 1}:`, parsed);
+                    return parsed;
+                } catch (e) {
+                    console.warn('Failed to load clock settings:', e);
+                    return null;
+                }
+            }
+
+            // Save the currently selected clock index
+            saveSelectedClock(clockIndex) {
+                try {
+                    localStorage.setItem(`${this.prefix}selected`, clockIndex.toString());
+                } catch (e) {
+                    console.warn('Failed to save selected clock:', e);
+                }
+            }
+
+            // Load the last selected clock index
+            loadSelectedClock() {
+                try {
+                    const saved = localStorage.getItem(`${this.prefix}selected`);
+                    return saved !== null ? parseInt(saved, 10) : null;
+                } catch (e) {
+                    console.warn('Failed to load selected clock:', e);
+                    return null;
+                }
+            }
+        }
 
         class MultiClock {
             constructor() {
@@ -91,9 +155,27 @@ H: Show this help</div>
                 this.clockNumberDisplay = document.getElementById('clock-number');
                 this.helpOverlay = document.getElementById('help-overlay');
                 this.helpTimeout = null;
+                this.settingsManager = new SettingsManager();
 
                 this.setupEventListeners();
-                this.loadClock(0);
+                this.setupBeforeUnloadHandler();
+
+                // Load last selected clock or default to 0
+                const savedClockIndex = this.settingsManager.loadSelectedClock();
+                const initialClockIndex = (savedClockIndex !== null && savedClockIndex >= 0 && savedClockIndex < this.clocks.length)
+                    ? savedClockIndex
+                    : 0;
+                this.loadClock(initialClockIndex);
+            }
+
+            setupBeforeUnloadHandler() {
+                // Save settings when closing the tab/window or navigating away
+                window.addEventListener('beforeunload', () => {
+                    if (this.currentClockInstance && typeof this.currentClockInstance.getSettings === 'function') {
+                        const settings = this.currentClockInstance.getSettings();
+                        this.settingsManager.saveClockSettings(this.currentClockIndex, settings);
+                    }
+                });
             }
 
             setupEventListeners() {
@@ -159,7 +241,15 @@ H: Show this help</div>
             }
 
             async loadClock(index) {
+                console.log(`[MultiClock] loadClock called for index ${index}`);
+
                 if (this.currentClockInstance) {
+                    // Save settings before destroying
+                    if (typeof this.currentClockInstance.getSettings === 'function') {
+                        const settings = this.currentClockInstance.getSettings();
+                        console.log(`[MultiClock] Getting settings from current clock ${this.currentClockIndex + 1}:`, settings);
+                        this.settingsManager.saveClockSettings(this.currentClockIndex, settings);
+                    }
                     this.currentClockInstance.destroy();
                     this.clearContainer();
                 }
@@ -168,9 +258,20 @@ H: Show this help</div>
                 const ClockClass = this.clocks[index].class;
                 this.currentClockInstance = new ClockClass();
 
+                // Setup settings manager reference BEFORE init so it's available during initialization
+                this.currentClockInstance.settingsManager = this.settingsManager;
+                this.currentClockInstance.clockIndex = index;
+
+                // Load saved settings if available
+                const savedSettings = this.settingsManager.loadClockSettings(index);
+                console.log(`[MultiClock] Passing savedSettings to clock ${index + 1} init:`, savedSettings);
+
                 try {
-                    await this.currentClockInstance.init(this.container);
+                    await this.currentClockInstance.init(this.container, savedSettings);
                     this.updateClockNumber();
+
+                    // Save the selected clock index
+                    this.settingsManager.saveSelectedClock(index);
                 } catch (error) {
                     console.error('Failed to load clock:', error);
                 }
@@ -178,6 +279,7 @@ H: Show this help</div>
 
             switchToClock(index) {
                 if (index !== this.currentClockIndex) {
+                    this.settingsManager.saveSelectedClock(index);
                     this.loadClock(index);
                 }
             }

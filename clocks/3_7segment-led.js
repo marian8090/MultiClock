@@ -38,14 +38,68 @@ export class SevenSegmentLedClock {
         // Parameter display element
         this.parameterDisplay = null;
         this.parameterDisplayTimeout = null;
+
+        // Settings manager (will be set by MultiClock)
+        this.settingsManager = null;
+        this.clockIndex = null;
     }
 
-    init(container) {
+    init(container, savedSettings = null) {
         this.container = container;
+
+        console.log('[SevenSegmentLedClock] init() called with savedSettings:', savedSettings);
+
+        // Load saved settings if available
+        if (savedSettings) {
+            console.log('[SevenSegmentLedClock] Calling loadSettings() with:', savedSettings);
+            this.loadSettings(savedSettings);
+            console.log('[SevenSegmentLedClock] After loadSettings() - currentFontSizeMultiplier:', this.currentFontSizeMultiplier, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode);
+        } else {
+            console.log('[SevenSegmentLedClock] No saved settings, using defaults');
+        }
+
         this.createStyles();
         this.createHTML();
         this.createParameterDisplay();
         this.startUpdate();
+    }
+
+    // Get current settings for persistence
+    getSettings() {
+        const settings = {
+            currentFontSizeMultiplier: this.currentFontSizeMultiplier,
+            currentColor: this.currentColor,
+            currentRenderMode: this.currentRenderMode
+        };
+        console.log('[SevenSegmentLedClock] getSettings() returning:', settings);
+        return settings;
+    }
+
+    // Load settings from saved data
+    loadSettings(settings) {
+        console.log('[SevenSegmentLedClock] loadSettings() called with:', settings);
+
+        if (settings.currentFontSizeMultiplier !== undefined && settings.currentFontSizeMultiplier >= 0.2 && settings.currentFontSizeMultiplier <= 5.0) {
+            console.log('[SevenSegmentLedClock] Setting currentFontSizeMultiplier to:', settings.currentFontSizeMultiplier);
+            this.currentFontSizeMultiplier = settings.currentFontSizeMultiplier;
+        }
+        if (settings.currentColor !== undefined && settings.currentColor >= 0 && settings.currentColor < this.colors.length) {
+            console.log('[SevenSegmentLedClock] Setting currentColor to:', settings.currentColor);
+            this.currentColor = settings.currentColor;
+        }
+        if (settings.currentRenderMode !== undefined && settings.currentRenderMode >= 0 && settings.currentRenderMode < this.renderModes.length) {
+            console.log('[SevenSegmentLedClock] Setting currentRenderMode to:', settings.currentRenderMode);
+            this.currentRenderMode = settings.currentRenderMode;
+        }
+
+        console.log('[SevenSegmentLedClock] loadSettings() complete. Final values - currentFontSizeMultiplier:', this.currentFontSizeMultiplier, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode);
+    }
+
+    // Save current settings
+    saveSettings() {
+        if (this.settingsManager && this.clockIndex !== null) {
+            this.settingsManager.saveClockSettings(this.clockIndex, this.getSettings());
+        }
     }
 
     createStyles() {
@@ -269,6 +323,7 @@ export class SevenSegmentLedClock {
                 break;
         }
 
+        this.saveSettings();
         this.showSelectedValue();
     }
 
@@ -290,6 +345,7 @@ export class SevenSegmentLedClock {
                 break;
         }
 
+        this.saveSettings();
         this.showSelectedValue();
     }
 

@@ -44,10 +44,26 @@ export class AviationClock {
         // Parameter display element
         this.parameterDisplay = null;
         this.parameterDisplayTimeout = null;
+
+        // Settings manager (will be set by MultiClock)
+        this.settingsManager = null;
+        this.clockIndex = null;
     }
 
-    async init(container) {
+    async init(container, savedSettings = null) {
         this.container = container;
+
+        console.log('[AviationClock] init() called with savedSettings:', savedSettings);
+
+        // Load saved settings if available
+        if (savedSettings) {
+            console.log('[AviationClock] Calling loadSettings() with:', savedSettings);
+            this.loadSettings(savedSettings);
+            console.log('[AviationClock] After loadSettings() - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor, 'currentSecondsHandMode:', this.currentSecondsHandMode);
+        } else {
+            console.log('[AviationClock] No saved settings, using defaults');
+        }
+
         this.app = new PIXI.Application();
 
         await this.app.init({
@@ -66,6 +82,44 @@ export class AviationClock {
         this.createParameterDisplay();
         this.setupEventListeners();
         this.startAnimation();
+    }
+
+    // Get current settings for persistence
+    getSettings() {
+        const settings = {
+            currentSizeMultiplier: this.currentSizeMultiplier,
+            currentColor: this.currentColor,
+            currentSecondsHandMode: this.currentSecondsHandMode
+        };
+        console.log('[AviationClock] getSettings() returning:', settings);
+        return settings;
+    }
+
+    // Load settings from saved data
+    loadSettings(settings) {
+        console.log('[AviationClock] loadSettings() called with:', settings);
+
+        if (settings.currentSizeMultiplier !== undefined && settings.currentSizeMultiplier >= 0.2 && settings.currentSizeMultiplier <= 3.0) {
+            console.log('[AviationClock] Setting currentSizeMultiplier to:', settings.currentSizeMultiplier);
+            this.currentSizeMultiplier = settings.currentSizeMultiplier;
+        }
+        if (settings.currentColor !== undefined && settings.currentColor >= 0 && settings.currentColor < this.colors.length) {
+            console.log('[AviationClock] Setting currentColor to:', settings.currentColor);
+            this.currentColor = settings.currentColor;
+        }
+        if (settings.currentSecondsHandMode !== undefined && settings.currentSecondsHandMode >= 0 && settings.currentSecondsHandMode < this.secondsHandModes.length) {
+            console.log('[AviationClock] Setting currentSecondsHandMode to:', settings.currentSecondsHandMode);
+            this.currentSecondsHandMode = settings.currentSecondsHandMode;
+        }
+
+        console.log('[AviationClock] loadSettings() complete. Final values - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor, 'currentSecondsHandMode:', this.currentSecondsHandMode);
+    }
+
+    // Save current settings
+    saveSettings() {
+        if (this.settingsManager && this.clockIndex !== null) {
+            this.settingsManager.saveClockSettings(this.clockIndex, this.getSettings());
+        }
     }
 
     updateFPS() {
@@ -338,22 +392,29 @@ export class AviationClock {
     changeParameterLeft() {
         const parameter = this.parameters[this.currentParameterIndex];
 
+        console.log('[AviationClock] changeParameterLeft() - parameter:', parameter);
+
         switch (parameter) {
             case 'SIZE':
                 this.currentSizeMultiplier = Math.max(0.2, this.currentSizeMultiplier / 1.2);
+                console.log('[AviationClock] Changed size to:', this.currentSizeMultiplier);
                 this.buildClock();
                 break;
             case 'COLOR':
                 this.currentColor = (this.currentColor - 1 + this.colors.length) % this.colors.length;
+                console.log('[AviationClock] Changed color to:', this.currentColor);
                 this.buildClock();
                 break;
             case 'SECONDS HAND':
                 this.currentSecondsHandMode = (this.currentSecondsHandMode - 1 + this.secondsHandModes.length) % this.secondsHandModes.length;
+                console.log('[AviationClock] Changed seconds hand mode to:', this.currentSecondsHandMode);
                 this.updateFPS();
                 this.buildClock();
                 break;
         }
 
+        console.log('[AviationClock] Calling saveSettings()');
+        this.saveSettings();
         this.showSelectedValue();
     }
 
@@ -376,6 +437,7 @@ export class AviationClock {
                 break;
         }
 
+        this.saveSettings();
         this.showSelectedValue();
     }
 

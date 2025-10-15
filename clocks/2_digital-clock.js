@@ -12,12 +12,9 @@ export class DigitalClock {
             { name: 'AppleII-PrintChar21', file: 'AppleII-PrintChar21.ttf' },
             { name: 'Perfect_DOS_VGA_437', file: 'Perfect DOS VGA 437.ttf' },
             { name: 'PMDG_NG3_DU_A_SC70x85', file: 'PMDG_NG3_DU_A-SC70x85-baseline.ttf' },
+            { name: 'PMDG_NG3_LCD_9seg', file: 'PMDG_NG3_LCD_9seg.ttf' },
             { name: 'Courier_New', file: null, family: '"Courier New", Courier, monospace' },
-            { name: 'Monaco', file: null, family: 'Monaco, "Lucida Console", monospace' },
-            { name: 'Consolas', file: null, family: 'Consolas, "Andale Mono", monospace' },
-            { name: 'Lucida_Console', file: null, family: '"Lucida Console", Monaco, monospace' },
-            { name: 'DejaVu_Sans_Mono', file: null, family: '"DejaVu Sans Mono", "Liberation Mono", monospace' },
-            { name: 'Source_Code_Pro', file: null, family: '"Source Code Pro", "SF Mono", monospace' }
+            { name: 'Monaco', file: null, family: 'Monaco, "Lucida Console", monospace' }
         ];
 
         // Available colors
@@ -52,14 +49,73 @@ export class DigitalClock {
         // Parameter display element
         this.parameterDisplay = null;
         this.parameterDisplayTimeout = null;
+
+        // Settings manager (will be set by MultiClock)
+        this.settingsManager = null;
+        this.clockIndex = null;
     }
 
-    init(container) {
+    init(container, savedSettings = null) {
         this.container = container;
+
+        console.log('[DigitalClock] init() called with savedSettings:', savedSettings);
+
+        // Load saved settings if available
+        if (savedSettings) {
+            console.log('[DigitalClock] Calling loadSettings() with:', savedSettings);
+            this.loadSettings(savedSettings);
+            console.log('[DigitalClock] After loadSettings() - currentFont:', this.currentFont, 'currentFontSizeMultiplier:', this.currentFontSizeMultiplier, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode);
+        } else {
+            console.log('[DigitalClock] No saved settings, using defaults');
+        }
+
         this.createStyles();
         this.createHTML();
         this.createParameterDisplay();
         this.startUpdate();
+    }
+
+    // Get current settings for persistence
+    getSettings() {
+        const settings = {
+            currentFont: this.currentFont,
+            currentFontSizeMultiplier: this.currentFontSizeMultiplier,
+            currentColor: this.currentColor,
+            currentRenderMode: this.currentRenderMode
+        };
+        console.log('[DigitalClock] getSettings() returning:', settings);
+        return settings;
+    }
+
+    // Load settings from saved data
+    loadSettings(settings) {
+        console.log('[DigitalClock] loadSettings() called with:', settings);
+
+        if (settings.currentFont !== undefined && settings.currentFont >= 0 && settings.currentFont < this.fonts.length) {
+            console.log('[DigitalClock] Setting currentFont to:', settings.currentFont);
+            this.currentFont = settings.currentFont;
+        }
+        if (settings.currentFontSizeMultiplier !== undefined && settings.currentFontSizeMultiplier >= 0.2 && settings.currentFontSizeMultiplier <= 5.0) {
+            console.log('[DigitalClock] Setting currentFontSizeMultiplier to:', settings.currentFontSizeMultiplier);
+            this.currentFontSizeMultiplier = settings.currentFontSizeMultiplier;
+        }
+        if (settings.currentColor !== undefined && settings.currentColor >= 0 && settings.currentColor < this.colors.length) {
+            console.log('[DigitalClock] Setting currentColor to:', settings.currentColor);
+            this.currentColor = settings.currentColor;
+        }
+        if (settings.currentRenderMode !== undefined && settings.currentRenderMode >= 0 && settings.currentRenderMode < this.renderModes.length) {
+            console.log('[DigitalClock] Setting currentRenderMode to:', settings.currentRenderMode);
+            this.currentRenderMode = settings.currentRenderMode;
+        }
+
+        console.log('[DigitalClock] loadSettings() complete. Final values - currentFont:', this.currentFont, 'currentFontSizeMultiplier:', this.currentFontSizeMultiplier, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode);
+    }
+
+    // Save current settings
+    saveSettings() {
+        if (this.settingsManager && this.clockIndex !== null) {
+            this.settingsManager.saveClockSettings(this.clockIndex, this.getSettings());
+        }
     }
 
     createStyles() {
@@ -301,6 +357,7 @@ export class DigitalClock {
                 break;
         }
 
+        this.saveSettings();
         this.showSelectedValue();
     }
 
@@ -326,6 +383,7 @@ export class DigitalClock {
                 break;
         }
 
+        this.saveSettings();
         this.showSelectedValue();
     }
 
