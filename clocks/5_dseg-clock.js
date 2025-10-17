@@ -15,8 +15,7 @@ export class DSEGClock {
         // Available font types
         this.fontTypes = [
             { name: 'Classic', value: 'classic' },
-            { name: 'Modern', value: 'modern' },
-            { name: 'LCD 9-Segment', value: 'lcd9seg' }
+            { name: 'Modern', value: 'modern' }
         ];
 
         // Available font styles
@@ -67,9 +66,9 @@ export class DSEGClock {
             { name: 'Hide', value: 'hide' }
         ];
 
-        // Available font sizes (in points, like MS Word)
-        this.timeFontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 96, 144, 200, 288];
-        this.dateFontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 96, 144, 200, 288];
+        // Available font sizes (in points, like MS Word) - 36 to 400 with finer steps
+        this.timeFontSizes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 320, 340, 360, 380, 400];
+        this.dateFontSizes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 320, 340, 360, 380, 400];
 
         // Parameters
         this.parameters = ['CLOCK MODEL', 'FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY', 'TEMPERATURE'];
@@ -81,8 +80,8 @@ export class DSEGClock {
         // Current settings
         this.currentFontType = 0; // Classic by default
         this.currentFontStyle = 3; // Italic by default
-        this.currentTimeFontSizeIndex = 15; // 72pt by default
-        this.currentDateFontSizeIndex = 14; // 48pt by default
+        this.currentTimeFontSizeIndex = 9; // 72pt by default (index 9 in new array)
+        this.currentDateFontSizeIndex = 3; // 48pt by default (index 3 in new array)
         this.currentColor = 6; // White by default
         this.currentRenderMode = 0; // Smooth by default
         this.currentSecondsDisplay = 0; // Show by default
@@ -402,22 +401,11 @@ export class DSEGClock {
             `);
         });
 
-        // Add PMDG LCD 9-segment font
-        fontFaces.push(`
-            @font-face {
-                font-family: 'PMDG_NG3_LCD_9seg';
-                src: url('fonts/PMDG_NG3_LCD_9seg.ttf') format('truetype');
-            }
-        `);
-
         return fontFaces.join('\n');
     }
 
     getCurrentFontFamily() {
         const fontType = this.fontTypes[this.currentFontType].value;
-        if (fontType === 'lcd9seg') {
-            return 'PMDG_NG3_LCD_9seg';
-        }
         const fontStyle = this.fontStyles[this.currentFontStyle].value;
         const fontTypeCapitalized = fontType.charAt(0).toUpperCase() + fontType.slice(1);
         return `DSEG7${fontTypeCapitalized}-${fontStyle}`;
@@ -425,9 +413,6 @@ export class DSEGClock {
 
     getCurrentWeekdayFontFamily() {
         const fontType = this.fontTypes[this.currentFontType].value;
-        if (fontType === 'lcd9seg') {
-            return 'PMDG_NG3_LCD_9seg';
-        }
         const fontStyle = this.fontStyles[this.currentFontStyle].value;
         const fontTypeCapitalized = fontType.charAt(0).toUpperCase() + fontType.slice(1);
         return `DSEG14${fontTypeCapitalized}-${fontStyle}`;
