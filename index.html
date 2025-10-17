@@ -262,6 +262,11 @@ H: Show this help</div>
                 this.currentClockInstance.settingsManager = this.settingsManager;
                 this.currentClockInstance.clockIndex = index;
 
+                // Pass MultiClock instance reference for clock switching (if supported)
+                if (this.currentClockInstance.multiClockInstance !== undefined) {
+                    this.currentClockInstance.multiClockInstance = this;
+                }
+
                 // Load saved settings if available
                 const savedSettings = this.settingsManager.loadClockSettings(index);
                 console.log(`[MultiClock] Passing savedSettings to clock ${index + 1} init:`, savedSettings);

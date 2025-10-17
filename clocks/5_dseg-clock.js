@@ -71,8 +71,11 @@ export class DSEGClock {
         this.dateFontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 96, 144, 200, 288];
 
         // Parameters
-        this.parameters = ['FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY', 'TEMPERATURE'];
+        this.parameters = ['CLOCK MODEL', 'FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY', 'TEMPERATURE'];
         this.currentParameterIndex = 0;
+
+        // Reference to MultiClock instance for clock switching
+        this.multiClockInstance = null;
 
         // Current settings
         this.currentFontType = 0; // Classic by default
@@ -296,18 +299,57 @@ export class DSEGClock {
 
             .parameter-display {
                 position: fixed;
-                top: 20px;
-                left: 20px;
+                top: 0;
+                left: 0;
                 color: #00ff00;
-                font-size: 14px;
+                font-size: 12px;
                 z-index: 1000;
                 font-family: 'Courier New', Courier, monospace;
-                opacity: 0.9;
-                white-space: pre;
-                line-height: 1.4;
-                background: rgba(0, 0, 0, 0.7);
+                line-height: 1;
+                background: rgba(0, 0, 0, 0.3);
                 padding: 8px;
-                border-radius: 4px;
+                max-width: 90vw;
+                overflow-x: auto;
+            }
+
+            .parameter-row {
+                margin: 0;
+                padding: 0;
+                white-space: nowrap;
+            }
+
+            .parameter-row.active .parameter-name {
+                background: #00ff00;
+                color: #000000;
+            }
+
+            .parameter-row.active .parameter-option.selected {
+                background: #00ff00;
+                color: #000000;
+                font-weight: bold;
+            }
+
+            .parameter-name {
+                display: inline;
+                color: #00ff00;
+            }
+
+            .parameter-options {
+                display: inline;
+                color: #888888;
+            }
+
+            .parameter-option {
+                display: inline;
+            }
+
+            .parameter-option.selected {
+                font-weight: bold;
+                color: #00ff00;
+            }
+
+            .parameter-separator {
+                color: #444444;
             }
         `;
     }
@@ -439,40 +481,32 @@ export class DSEGClock {
     }
 
     updateParameterDisplay() {
-        const parameter = this.parameters[this.currentParameterIndex];
-        let value = '';
+        // Build complete menu showing all parameters with all options
+        let html = '';
 
-        switch (parameter) {
-            case 'FONT':
-                value = this.fontTypes[this.currentFontType].name;
-                break;
-            case 'STYLE':
-                value = this.fontStyles[this.currentFontStyle].name;
-                break;
-            case 'TIME FONTSIZE':
-                value = this.timeFontSizes[this.currentTimeFontSizeIndex] + 'pt';
-                break;
-            case 'DATE FONTSIZE':
-                value = this.dateFontSizes[this.currentDateFontSizeIndex] + 'pt';
-                break;
-            case 'FONT COLOUR':
-                value = this.colors[this.currentColor].name;
-                break;
-            case 'RENDERER':
-                value = this.renderModes[this.currentRenderMode].name;
-                break;
-            case 'SECONDS':
-                value = this.secondsDisplayModes[this.currentSecondsDisplay].name;
-                break;
-            case 'WEEKDAY':
-                value = this.weekdayDisplayModes[this.currentWeekdayDisplay].name;
-                break;
-            case 'TEMPERATURE':
-                value = this.temperatureDisplayModes[this.currentTemperatureDisplay].name;
-                break;
-        }
+        this.parameters.forEach((paramName, paramIndex) => {
+            const isActive = paramIndex === this.currentParameterIndex;
+            const activeClass = isActive ? ' active' : '';
 
-        this.parameterDisplay.textContent = `${parameter}: ${value}`;
+            // Get all options for this parameter
+            const allOptions = this.getAllOptionsForParameter(paramName);
+            const currentSelection = this.getCurrentSelectionForParameter(paramName);
+
+            // Build options HTML with separators (single space between words)
+            const optionsHtml = allOptions.map((option, optionIndex) => {
+                const isSelected = optionIndex === currentSelection;
+                const selectedClass = isSelected ? ' selected' : '';
+                const separator = optionIndex < allOptions.length - 1 ? '<span class="parameter-separator"> </span>' : '';
+                return `<span class="parameter-option${selectedClass}">${option}</span>${separator}`;
+            }).join('');
+
+            html += `<div class="parameter-row${activeClass}">`;
+            html += `<span class="parameter-name">${paramName}: </span>`;
+            html += `<span class="parameter-options">${optionsHtml}</span>`;
+            html += `</div>`;
+        });
+
+        this.parameterDisplay.innerHTML = html;
         this.parameterDisplay.style.display = 'block';
 
         // Clear existing timeout
@@ -487,45 +521,72 @@ export class DSEGClock {
     }
 
     showSelectedValue() {
-        const parameter = this.parameters[this.currentParameterIndex];
-        let value = '';
+        // Just update the display - it will show all parameters with the new selection highlighted
+        this.updateParameterDisplay();
+    }
 
-        switch (parameter) {
+    // Helper method to get all options for a parameter
+    getAllOptionsForParameter(paramName) {
+        switch (paramName) {
+            case 'CLOCK MODEL':
+                // Get clock names from MultiClock instance if available
+                if (this.multiClockInstance && this.multiClockInstance.clocks) {
+                    return this.multiClockInstance.clocks.map(c => c.name);
+                }
+                return ['Analog', 'Digital', '7-Segment LED', 'Slim Analog', 'DSEG'];
             case 'FONT':
-                value = this.fontTypes[this.currentFontType].name;
-                break;
+                return this.fontTypes.map(f => f.name);
             case 'STYLE':
-                value = this.fontStyles[this.currentFontStyle].name;
-                break;
+                return this.fontStyles.map(f => f.name);
             case 'TIME FONTSIZE':
-                value = this.timeFontSizes[this.currentTimeFontSizeIndex] + 'pt';
-                break;
+                return this.timeFontSizes.map(s => s.toString());
             case 'DATE FONTSIZE':
-                value = this.dateFontSizes[this.currentDateFontSizeIndex] + 'pt';
-                break;
+                return this.dateFontSizes.map(s => s.toString());
             case 'FONT COLOUR':
-                value = this.colors[this.currentColor].name;
-                break;
+                return this.colors.map(c => c.name);
             case 'RENDERER':
-                value = this.renderModes[this.currentRenderMode].name;
-                break;
+                return this.renderModes.map(r => r.name);
             case 'SECONDS':
-                value = this.secondsDisplayModes[this.currentSecondsDisplay].name;
-                break;
+                return this.secondsDisplayModes.map(s => s.name);
             case 'WEEKDAY':
-                value = this.weekdayDisplayModes[this.currentWeekdayDisplay].name;
-                break;
+                return this.weekdayDisplayModes.map(w => w.name);
             case 'TEMPERATURE':
-                value = this.temperatureDisplayModes[this.currentTemperatureDisplay].name;
-                break;
+                return this.temperatureDisplayModes.map(t => t.name);
+            default:
+                return [];
         }
+    }
 
-        // Temporarily show the selected value
-        this.parameterDisplay.textContent = `${parameter}: ${value}`;
-
-        setTimeout(() => {
-            this.updateParameterDisplay();
-        }, 1000);
+    // Get current selected index for a parameter
+    getCurrentSelectionForParameter(paramName) {
+        switch (paramName) {
+            case 'CLOCK MODEL':
+                // Get current clock index from MultiClock instance if available
+                if (this.multiClockInstance) {
+                    return this.multiClockInstance.currentClockIndex;
+                }
+                return this.clockIndex || 0;
+            case 'FONT':
+                return this.currentFontType;
+            case 'STYLE':
+                return this.currentFontStyle;
+            case 'TIME FONTSIZE':
+                return this.currentTimeFontSizeIndex;
+            case 'DATE FONTSIZE':
+                return this.currentDateFontSizeIndex;
+            case 'FONT COLOUR':
+                return this.currentColor;
+            case 'RENDERER':
+                return this.currentRenderMode;
+            case 'SECONDS':
+                return this.currentSecondsDisplay;
+            case 'WEEKDAY':
+                return this.currentWeekdayDisplay;
+            case 'TEMPERATURE':
+                return this.currentTemperatureDisplay;
+            default:
+                return 0;
+        }
     }
 
     // Parameter navigation methods
@@ -543,6 +604,14 @@ export class DSEGClock {
         const parameter = this.parameters[this.currentParameterIndex];
 
         switch (parameter) {
+            case 'CLOCK MODEL':
+                // Switch to previous clock
+                if (this.multiClockInstance) {
+                    const numClocks = this.multiClockInstance.clocks.length;
+                    const newIndex = (this.multiClockInstance.currentClockIndex - 1 + numClocks) % numClocks;
+                    this.multiClockInstance.switchToClock(newIndex);
+                }
+                return; // Don't save settings or show value (clock is switching)
             case 'FONT':
                 this.currentFontType = (this.currentFontType - 1 + this.fontTypes.length) % this.fontTypes.length;
                 this.updateStyles();
@@ -587,6 +656,14 @@ export class DSEGClock {
         const parameter = this.parameters[this.currentParameterIndex];
 
         switch (parameter) {
+            case 'CLOCK MODEL':
+                // Switch to next clock
+                if (this.multiClockInstance) {
+                    const numClocks = this.multiClockInstance.clocks.length;
+                    const newIndex = (this.multiClockInstance.currentClockIndex + 1) % numClocks;
+                    this.multiClockInstance.switchToClock(newIndex);
+                }
+                return; // Don't save settings or show value (clock is switching)
             case 'FONT':
                 this.currentFontType = (this.currentFontType + 1) % this.fontTypes.length;
                 this.updateStyles();
