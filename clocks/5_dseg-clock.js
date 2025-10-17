@@ -2,10 +2,12 @@ export class DSEGClock {
     constructor() {
         this.container = null;
         this.clockElement = null;
-        this.weekdayElement = null;
-        this.dateElement = null;
+        this.weekdayDateElement = null;
+        this.temperatureElement = null;
         this.updateInterval = null;
+        this.temperatureFetchInterval = null;
         this.styleElement = null;
+        this.currentTemperature = '--';
 
         // Available font types
         this.fontTypes = [
@@ -54,12 +56,18 @@ export class DSEGClock {
             { name: 'Hide', value: 'hide' }
         ];
 
+        // Available temperature display modes
+        this.temperatureDisplayModes = [
+            { name: 'Show', value: 'show' },
+            { name: 'Hide', value: 'hide' }
+        ];
+
         // Available font sizes (in points, like MS Word)
         this.timeFontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 96, 144, 200, 288];
         this.dateFontSizes = [8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 96, 144, 200, 288];
 
         // Parameters
-        this.parameters = ['FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY'];
+        this.parameters = ['FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY', 'TEMPERATURE'];
         this.currentParameterIndex = 0;
 
         // Current settings
@@ -71,6 +79,7 @@ export class DSEGClock {
         this.currentRenderMode = 0; // Smooth by default
         this.currentSecondsDisplay = 0; // Show by default
         this.currentWeekdayDisplay = 0; // Show by default
+        this.currentTemperatureDisplay = 1; // Hide by default
 
         // Colon blink state
         this.colonVisible = true;
@@ -102,6 +111,7 @@ export class DSEGClock {
         this.createHTML();
         this.createParameterDisplay();
         this.startUpdate();
+        this.startTemperatureFetch();
     }
 
     // Get current settings for persistence
@@ -114,7 +124,8 @@ export class DSEGClock {
             currentColor: this.currentColor,
             currentRenderMode: this.currentRenderMode,
             currentSecondsDisplay: this.currentSecondsDisplay,
-            currentWeekdayDisplay: this.currentWeekdayDisplay
+            currentWeekdayDisplay: this.currentWeekdayDisplay,
+            currentTemperatureDisplay: this.currentTemperatureDisplay
         };
         console.log('[DSEGClock] getSettings() returning:', settings);
         return settings;
@@ -156,8 +167,12 @@ export class DSEGClock {
             console.log('[DSEGClock] Setting currentWeekdayDisplay to:', settings.currentWeekdayDisplay);
             this.currentWeekdayDisplay = settings.currentWeekdayDisplay;
         }
+        if (settings.currentTemperatureDisplay !== undefined && settings.currentTemperatureDisplay >= 0 && settings.currentTemperatureDisplay < this.temperatureDisplayModes.length) {
+            console.log('[DSEGClock] Setting currentTemperatureDisplay to:', settings.currentTemperatureDisplay);
+            this.currentTemperatureDisplay = settings.currentTemperatureDisplay;
+        }
 
-        console.log('[DSEGClock] loadSettings() complete. Final values - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentTimeFontSizeIndex:', this.currentTimeFontSizeIndex, 'currentDateFontSizeIndex:', this.currentDateFontSizeIndex, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode, 'currentSecondsDisplay:', this.currentSecondsDisplay, 'currentWeekdayDisplay:', this.currentWeekdayDisplay);
+        console.log('[DSEGClock] loadSettings() complete. Final values - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentTimeFontSizeIndex:', this.currentTimeFontSizeIndex, 'currentDateFontSizeIndex:', this.currentDateFontSizeIndex, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode, 'currentSecondsDisplay:', this.currentSecondsDisplay, 'currentWeekdayDisplay:', this.currentWeekdayDisplay, 'currentTemperatureDisplay:', this.currentTemperatureDisplay);
     }
 
     // Save current settings
@@ -235,19 +250,25 @@ export class DSEGClock {
                 ${renderingCSS.text}
             }
 
-            .dseg-weekday {
-                font-size: ${weekdayFontSize}vmin;
-                font-weight: normal;
-                letter-spacing: 0.05em;
-                margin-bottom: 0.3em;
-                font-family: '${weekdayFontFamily}', monospace;
-                ${renderingCSS.text}
-            }
-
-            .dseg-date {
+            .dseg-weekday-date {
                 font-size: ${dateFontSize}vmin;
                 font-weight: normal;
                 letter-spacing: 0.05em;
+                font-family: '${weekdayFontFamily}', monospace;
+                text-align: center;
+                max-width: 90vw;
+                word-wrap: break-word;
+                line-height: 1.3;
+                ${renderingCSS.text}
+            }
+
+            .dseg-temperature {
+                font-size: ${dateFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0.05em;
+                font-family: '${weekdayFontFamily}', monospace;
+                text-align: center;
+                margin-top: 0.3em;
                 ${renderingCSS.text}
             }
 
@@ -368,15 +389,15 @@ export class DSEGClock {
         this.clockElement = document.createElement('div');
         this.clockElement.className = 'dseg-time';
 
-        this.weekdayElement = document.createElement('div');
-        this.weekdayElement.className = 'dseg-weekday';
+        this.weekdayDateElement = document.createElement('div');
+        this.weekdayDateElement.className = 'dseg-weekday-date';
 
-        this.dateElement = document.createElement('div');
-        this.dateElement.className = 'dseg-date';
+        this.temperatureElement = document.createElement('div');
+        this.temperatureElement.className = 'dseg-temperature';
 
         display.appendChild(this.clockElement);
-        display.appendChild(this.weekdayElement);
-        display.appendChild(this.dateElement);
+        display.appendChild(this.weekdayDateElement);
+        display.appendChild(this.temperatureElement);
         clockContainer.appendChild(display);
 
         this.container.appendChild(clockContainer);
@@ -417,6 +438,9 @@ export class DSEGClock {
                 break;
             case 'WEEKDAY':
                 value = this.weekdayDisplayModes[this.currentWeekdayDisplay].name;
+                break;
+            case 'TEMPERATURE':
+                value = this.temperatureDisplayModes[this.currentTemperatureDisplay].name;
                 break;
         }
 
@@ -462,6 +486,9 @@ export class DSEGClock {
                 break;
             case 'WEEKDAY':
                 value = this.weekdayDisplayModes[this.currentWeekdayDisplay].name;
+                break;
+            case 'TEMPERATURE':
+                value = this.temperatureDisplayModes[this.currentTemperatureDisplay].name;
                 break;
         }
 
@@ -518,6 +545,10 @@ export class DSEGClock {
             case 'WEEKDAY':
                 this.currentWeekdayDisplay = (this.currentWeekdayDisplay - 1 + this.weekdayDisplayModes.length) % this.weekdayDisplayModes.length;
                 break;
+            case 'TEMPERATURE':
+                this.currentTemperatureDisplay = (this.currentTemperatureDisplay - 1 + this.temperatureDisplayModes.length) % this.temperatureDisplayModes.length;
+                this.updateTemperatureDisplay();
+                break;
         }
 
         this.saveSettings();
@@ -558,6 +589,10 @@ export class DSEGClock {
             case 'WEEKDAY':
                 this.currentWeekdayDisplay = (this.currentWeekdayDisplay + 1) % this.weekdayDisplayModes.length;
                 break;
+            case 'TEMPERATURE':
+                this.currentTemperatureDisplay = (this.currentTemperatureDisplay + 1) % this.temperatureDisplayModes.length;
+                this.updateTemperatureDisplay();
+                break;
         }
 
         this.saveSettings();
@@ -591,7 +626,7 @@ export class DSEGClock {
             timeString = `${hours}${separator}${minutes}`;
         }
 
-        // Weekday display
+        // Weekday and date display
         const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const weekdayString = weekdayNames[now.getDay()];
 
@@ -602,16 +637,14 @@ export class DSEGClock {
 
         this.clockElement.textContent = timeString;
 
-        // Show or hide weekday based on setting
+        // Show weekday and date on one line if weekday is shown, otherwise just date
         if (weekdayMode === 'show') {
-            this.weekdayElement.textContent = weekdayString;
-            this.weekdayElement.style.display = 'block';
+            this.weekdayDateElement.textContent = `${weekdayString}  ${dateString}`;
+            this.weekdayDateElement.style.display = 'block';
         } else {
-            this.weekdayElement.textContent = '';
-            this.weekdayElement.style.display = 'none';
+            this.weekdayDateElement.textContent = dateString;
+            this.weekdayDateElement.style.display = 'block';
         }
-
-        this.dateElement.textContent = dateString;
     }
 
     startUpdate() {
@@ -619,10 +652,60 @@ export class DSEGClock {
         this.updateInterval = setInterval(() => this.updateClock(), 1000);
     }
 
+    async fetchTemperature() {
+        try {
+            // Stevenage, UK coordinates
+            const latitude = 51.90;
+            const longitude = -0.20;
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&temperature_unit=celsius`;
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+            const temp = Math.round(data.current.temperature_2m);
+            this.currentTemperature = temp.toString();
+
+            // Update display immediately if temperature is shown
+            this.updateTemperatureDisplay();
+        } catch (error) {
+            console.error('[DSEGClock] Error fetching temperature:', error);
+            this.currentTemperature = '--';
+            this.updateTemperatureDisplay();
+        }
+    }
+
+    updateTemperatureDisplay() {
+        const temperatureMode = this.temperatureDisplayModes[this.currentTemperatureDisplay].value;
+
+        if (temperatureMode === 'show') {
+            this.temperatureElement.textContent = `${this.currentTemperature}°`;
+            this.temperatureElement.style.display = 'block';
+        } else {
+            this.temperatureElement.textContent = '';
+            this.temperatureElement.style.display = 'none';
+        }
+    }
+
+    startTemperatureFetch() {
+        // Fetch temperature immediately
+        this.fetchTemperature();
+
+        // Fetch temperature every 10 minutes (600000 ms)
+        this.temperatureFetchInterval = setInterval(() => this.fetchTemperature(), 600000);
+    }
+
     destroy() {
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
             this.updateInterval = null;
+        }
+
+        if (this.temperatureFetchInterval) {
+            clearInterval(this.temperatureFetchInterval);
+            this.temperatureFetchInterval = null;
         }
 
         // Clean up parameter display timeout
