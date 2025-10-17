@@ -24,6 +24,14 @@
         }
 
         #clock-number {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: #00ff00;
+            font-size: 48px;
+            z-index: 1000;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: bold;
             display: none;
         }
 
@@ -284,6 +292,14 @@ H: Show this help</div>
 
             updateClockNumber() {
                 this.clockNumberDisplay.textContent = (this.currentClockIndex + 1).toString();
+            }
+
+            showClockNumber() {
+                this.clockNumberDisplay.style.display = 'block';
+            }
+
+            hideClockNumber() {
+                this.clockNumberDisplay.style.display = 'none';
             }
 
 

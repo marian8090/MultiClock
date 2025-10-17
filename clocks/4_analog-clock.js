@@ -508,8 +508,20 @@ export class AnalogClock2 {
         });
         this.parameterDisplay.innerHTML = html;
         this.parameterDisplay.style.display = 'block';
+
+        // Show clock number when parameter menu is visible
+        if (this.multiClockInstance && this.multiClockInstance.showClockNumber) {
+            this.multiClockInstance.showClockNumber();
+        }
+
         if (this.parameterDisplayTimeout) clearTimeout(this.parameterDisplayTimeout);
-        this.parameterDisplayTimeout = setTimeout(() => { this.parameterDisplay.style.display = 'none'; }, 5000);
+        this.parameterDisplayTimeout = setTimeout(() => {
+            this.parameterDisplay.style.display = 'none';
+            // Hide clock number when parameter menu hides
+            if (this.multiClockInstance && this.multiClockInstance.hideClockNumber) {
+                this.multiClockInstance.hideClockNumber();
+            }
+        }, 5000);
     }
 
     showSelectedValue() { this.updateParameterDisplay(); }
