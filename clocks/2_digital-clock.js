@@ -135,11 +135,14 @@ export class DigitalClock {
                 `@font-face {
                     font-family: '${font.name}';
                     src: url('fonts/${font.file}') format('truetype');
+                    font-weight: normal;
+                    font-style: normal;
+                    font-display: block;
                 }`
             ).join('\n');
 
         const currentFontInfo = this.fonts[this.currentFont];
-        const currentFontFamily = currentFontInfo.family || `'${currentFontInfo.name}', 'Courier New', monospace`;
+        const currentFontFamily = currentFontInfo.family || `'${currentFontInfo.name}', monospace`;
         const currentColor = this.colors[this.currentColor].value;
         const renderMode = this.renderModes[this.currentRenderMode].value;
 
