@@ -31,7 +31,8 @@ export class DSEGClock {
             { name: 'Yellow', value: '#ffff00' },
             { name: 'Magenta', value: '#ff00ff' },
             { name: 'Cyan', value: '#00ffff' },
-            { name: 'White', value: '#ffffff' }
+            { name: 'White', value: '#ffffff' },
+            { name: 'LCD', value: '#000000', background: '#949F53' }
         ];
 
         // Available render modes
@@ -176,7 +177,9 @@ export class DSEGClock {
         // Generate @font-face declarations for all DSEG7 and DSEG14 variants
         const fontFaces = this.generateFontFaces();
 
-        const currentColor = this.colors[this.currentColor].value;
+        const currentColorObj = this.colors[this.currentColor];
+        const currentColor = currentColorObj.value;
+        const backgroundColor = currentColorObj.background || '#000000'; // Use LCD background if available, otherwise black
         const renderMode = this.renderModes[this.currentRenderMode].value;
 
         // Convert point sizes to vmin (1pt ≈ 0.13889vmin)
@@ -208,7 +211,7 @@ export class DSEGClock {
                 left: 0;
                 width: 100vw;
                 height: 100vh;
-                background-color: black;
+                background-color: ${backgroundColor};
                 color: ${currentColor};
                 font-family: '${fontFamily}', monospace;
                 overflow: hidden;
