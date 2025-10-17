@@ -50,7 +50,10 @@ export class DSEGClock {
         // Available seconds display modes
         this.secondsDisplayModes = [
             { name: 'Show', value: 'show' },
-            { name: 'Small', value: 'small' },
+            { name: '-20%', value: 'minus20' },
+            { name: '-30%', value: 'minus30' },
+            { name: '-40%', value: 'minus40' },
+            { name: '-50%', value: 'minus50' },
             { name: 'Hide', value: 'hide' }
         ];
 
@@ -209,9 +212,12 @@ export class DSEGClock {
         let dateFontSize = this.dateFontSizes[this.currentDateFontSizeIndex] * 0.13889;
         let weekdayFontSize = dateFontSize; // Same size as date
 
-        // Calculate small seconds font size (one step smaller)
-        const smallSecondsIndex = Math.max(0, this.currentTimeFontSizeIndex - 1);
-        let smallSecondsFontSize = this.timeFontSizes[smallSecondsIndex] * 0.13889;
+        // Calculate percentage-reduced seconds font sizes
+        const baseTimeFontSize = this.timeFontSizes[this.currentTimeFontSizeIndex] * 0.13889;
+        let minus20SecondsFontSize = baseTimeFontSize * 0.8;  // -20%
+        let minus30SecondsFontSize = baseTimeFontSize * 0.7;  // -30%
+        let minus40SecondsFontSize = baseTimeFontSize * 0.6;  // -40%
+        let minus50SecondsFontSize = baseTimeFontSize * 0.5;  // -50%
 
         // Apply pixel-perfect rounding for crisp and pixelated modes
         if (renderMode === 'crisp' || renderMode === 'pixelated') {
@@ -219,7 +225,10 @@ export class DSEGClock {
             clockFontSize = Math.round(clockFontSize * vminToPx) / vminToPx;
             dateFontSize = Math.round(dateFontSize * vminToPx) / vminToPx;
             weekdayFontSize = Math.round(weekdayFontSize * vminToPx) / vminToPx;
-            smallSecondsFontSize = Math.round(smallSecondsFontSize * vminToPx) / vminToPx;
+            minus20SecondsFontSize = Math.round(minus20SecondsFontSize * vminToPx) / vminToPx;
+            minus30SecondsFontSize = Math.round(minus30SecondsFontSize * vminToPx) / vminToPx;
+            minus40SecondsFontSize = Math.round(minus40SecondsFontSize * vminToPx) / vminToPx;
+            minus50SecondsFontSize = Math.round(minus50SecondsFontSize * vminToPx) / vminToPx;
         }
 
         // Generate rendering CSS based on mode
@@ -268,8 +277,29 @@ export class DSEGClock {
                 ${renderingCSS.text}
             }
 
-            .dseg-time-small-seconds {
-                font-size: ${smallSecondsFontSize}vmin;
+            .dseg-time-minus20-seconds {
+                font-size: ${minus20SecondsFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0.05em;
+                ${renderingCSS.text}
+            }
+
+            .dseg-time-minus30-seconds {
+                font-size: ${minus30SecondsFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0.05em;
+                ${renderingCSS.text}
+            }
+
+            .dseg-time-minus40-seconds {
+                font-size: ${minus40SecondsFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0.05em;
+                ${renderingCSS.text}
+            }
+
+            .dseg-time-minus50-seconds {
+                font-size: ${minus50SecondsFontSize}vmin;
                 font-weight: normal;
                 letter-spacing: 0.05em;
                 ${renderingCSS.text}
@@ -713,24 +743,24 @@ export class DSEGClock {
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
 
-        // Remove any existing small seconds element
-        const existingSmallSeconds = this.timeContainer.querySelector('.dseg-time-small-seconds');
-        if (existingSmallSeconds) {
-            existingSmallSeconds.remove();
+        // Remove any existing percentage-sized seconds element
+        const existingPercentSeconds = this.timeContainer.querySelector('[class^="dseg-time-minus"]');
+        if (existingPercentSeconds) {
+            existingPercentSeconds.remove();
         }
 
         if (secondsMode === 'show') {
             // Show seconds at regular size
             this.clockElement.textContent = `${hours}:${minutes}:${seconds}`;
-        } else if (secondsMode === 'small') {
+        } else if (secondsMode === 'minus20' || secondsMode === 'minus30' || secondsMode === 'minus40' || secondsMode === 'minus50') {
             // Show main time without seconds
             this.clockElement.textContent = `${hours}:${minutes}`;
 
-            // Create and append small seconds element
-            const smallSecondsElement = document.createElement('span');
-            smallSecondsElement.className = 'dseg-time-small-seconds';
-            smallSecondsElement.textContent = `:${seconds}`;
-            this.timeContainer.appendChild(smallSecondsElement);
+            // Create and append percentage-sized seconds element
+            const percentSecondsElement = document.createElement('span');
+            percentSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
+            percentSecondsElement.textContent = `:${seconds}`;
+            this.timeContainer.appendChild(percentSecondsElement);
         } else {
             // Hide seconds, but blink colon at 1Hz
             const secondsNum = now.getSeconds();

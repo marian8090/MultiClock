@@ -11,8 +11,6 @@ export class DigitalClock {
             { name: 'PMDG_NG3_DU_A', file: 'PMDG_NG3_DU_A.ttf' },
             { name: 'AppleII-PrintChar21', file: 'AppleII-PrintChar21.ttf' },
             { name: 'Perfect_DOS_VGA_437', file: 'Perfect DOS VGA 437.ttf' },
-            { name: 'PMDG_NG3_DU_A_SC70x85', file: 'PMDG_NG3_DU_A-SC70x85-baseline.ttf' },
-            { name: 'PMDG_NG3_LCD_9seg', file: 'PMDG_NG3_LCD_9seg.ttf' },
             { name: 'Courier_New', file: null, family: '"Courier New", Courier, monospace' },
             { name: 'Monaco', file: null, family: 'Monaco, "Lucida Console", monospace' }
         ];
