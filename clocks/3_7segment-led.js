@@ -178,7 +178,7 @@ export class SevenSegmentLedClock {
                 top: 0;
                 left: 0;
                 color: #00ff00;
-                font-size: 12px;
+                font-size: 14px;
                 z-index: 1000;
                 font-family: 'Courier New', Courier, monospace;
                 line-height: 1;

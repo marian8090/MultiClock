@@ -15,7 +15,8 @@ export class DSEGClock {
         // Available font types
         this.fontTypes = [
             { name: 'Classic', value: 'classic' },
-            { name: 'Modern', value: 'modern' }
+            { name: 'Modern', value: 'modern' },
+            { name: 'LCD 9-Segment', value: 'lcd9seg' }
         ];
 
         // Available font styles
@@ -302,7 +303,7 @@ export class DSEGClock {
                 top: 0;
                 left: 0;
                 color: #00ff00;
-                font-size: 12px;
+                font-size: 14px;
                 z-index: 1000;
                 font-family: 'Courier New', Courier, monospace;
                 line-height: 1;
@@ -401,11 +402,22 @@ export class DSEGClock {
             `);
         });
 
+        // Add PMDG LCD 9-segment font
+        fontFaces.push(`
+            @font-face {
+                font-family: 'PMDG_NG3_LCD_9seg';
+                src: url('fonts/PMDG_NG3_LCD_9seg.ttf') format('truetype');
+            }
+        `);
+
         return fontFaces.join('\n');
     }
 
     getCurrentFontFamily() {
         const fontType = this.fontTypes[this.currentFontType].value;
+        if (fontType === 'lcd9seg') {
+            return 'PMDG_NG3_LCD_9seg';
+        }
         const fontStyle = this.fontStyles[this.currentFontStyle].value;
         const fontTypeCapitalized = fontType.charAt(0).toUpperCase() + fontType.slice(1);
         return `DSEG7${fontTypeCapitalized}-${fontStyle}`;
@@ -413,6 +425,9 @@ export class DSEGClock {
 
     getCurrentWeekdayFontFamily() {
         const fontType = this.fontTypes[this.currentFontType].value;
+        if (fontType === 'lcd9seg') {
+            return 'PMDG_NG3_LCD_9seg';
+        }
         const fontStyle = this.fontStyles[this.currentFontStyle].value;
         const fontTypeCapitalized = fontType.charAt(0).toUpperCase() + fontType.slice(1);
         return `DSEG14${fontTypeCapitalized}-${fontStyle}`;

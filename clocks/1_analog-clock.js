@@ -360,7 +360,7 @@ export class AnalogClock {
                     top: 0;
                     left: 0;
                     color: #00ff00;
-                    font-size: 12px;
+                    font-size: 14px;
                     z-index: 1000;
                     font-family: 'Courier New', Courier, monospace;
                     line-height: 1;
@@ -376,12 +376,12 @@ export class AnalogClock {
                     white-space: nowrap;
                 }
 
-                .analog-parameter-row.active .parameter-name {
+                .analog-parameter-row.active .analog-parameter-name {
                     background: #00ff00;
                     color: #000000;
                 }
 
-                .analog-parameter-row.active .parameter-option.selected {
+                .analog-parameter-row.active .analog-parameter-option.selected {
                     background: #00ff00;
                     color: #000000;
                     font-weight: bold;

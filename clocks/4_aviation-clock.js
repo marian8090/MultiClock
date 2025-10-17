@@ -304,18 +304,49 @@ export class AviationClock {
             style.textContent = `
                 .aviation-parameter-display {
                     position: fixed;
-                    top: 20px;
-                    left: 20px;
+                    top: 0;
+                    left: 0;
                     color: #00ff00;
                     font-size: 14px;
                     z-index: 1000;
                     font-family: 'Courier New', Courier, monospace;
-                    opacity: 0.9;
-                    white-space: pre;
-                    line-height: 1.4;
-                    background: rgba(0, 0, 0, 0.7);
+                    line-height: 1;
+                    background: rgba(0, 0, 0, 0.3);
                     padding: 8px;
-                    border-radius: 4px;
+                    max-width: 90vw;
+                    overflow-x: auto;
+                }
+                .aviation-parameter-row {
+                    margin: 0;
+                    padding: 0;
+                    white-space: nowrap;
+                }
+                .aviation-parameter-row.active .aviation-parameter-name {
+                    background: #00ff00;
+                    color: #000000;
+                }
+                .aviation-parameter-row.active .aviation-parameter-option.selected {
+                    background: #00ff00;
+                    color: #000000;
+                    font-weight: bold;
+                }
+                .aviation-parameter-name {
+                    display: inline;
+                    color: #00ff00;
+                }
+                .aviation-parameter-options {
+                    display: inline;
+                    color: #888888;
+                }
+                .aviation-parameter-option {
+                    display: inline;
+                }
+                .aviation-parameter-option.selected {
+                    font-weight: bold;
+                    color: #00ff00;
+                }
+                .aviation-parameter-separator {
+                    color: #444444;
                 }
             `;
             document.head.appendChild(style);
@@ -328,57 +359,62 @@ export class AviationClock {
     }
 
     updateParameterDisplay() {
-        const parameter = this.parameters[this.currentParameterIndex];
-        let value = '';
-
-        switch (parameter) {
-            case 'SIZE':
-                value = Math.round(this.currentSizeMultiplier * 100) + '%';
-                break;
-            case 'COLOR':
-                value = this.colors[this.currentColor].name;
-                break;
-            case 'SECONDS HAND':
-                value = this.secondsHandModes[this.currentSecondsHandMode].name;
-                break;
-        }
-
-        this.parameterDisplay.textContent = `${parameter}: ${value}`;
+        let html = '';
+        this.parameters.forEach((paramName, paramIndex) => {
+            const isActive = paramIndex === this.currentParameterIndex;
+            const activeClass = isActive ? ' active' : '';
+            const allOptions = this.getAllOptionsForParameter(paramName);
+            const currentSelection = this.getCurrentSelectionForParameter(paramName);
+            const optionsHtml = allOptions.map((option, optionIndex) => {
+                const isSelected = optionIndex === currentSelection;
+                const selectedClass = isSelected ? ' selected' : '';
+                const separator = optionIndex < allOptions.length - 1 ? '<span class="aviation-parameter-separator"> </span>' : '';
+                return `<span class="aviation-parameter-option${selectedClass}">${option}</span>${separator}`;
+            }).join('');
+            html += `<div class="aviation-parameter-row${activeClass}"><span class="aviation-parameter-name">${paramName}: </span><span class="aviation-parameter-options">${optionsHtml}</span></div>`;
+        });
+        this.parameterDisplay.innerHTML = html;
         this.parameterDisplay.style.display = 'block';
-
-        // Clear existing timeout
-        if (this.parameterDisplayTimeout) {
-            clearTimeout(this.parameterDisplayTimeout);
-        }
-
-        // Auto-hide after 5 seconds
-        this.parameterDisplayTimeout = setTimeout(() => {
-            this.parameterDisplay.style.display = 'none';
-        }, 5000);
+        if (this.parameterDisplayTimeout) clearTimeout(this.parameterDisplayTimeout);
+        this.parameterDisplayTimeout = setTimeout(() => { this.parameterDisplay.style.display = 'none'; }, 5000);
     }
 
-    showSelectedValue() {
-        const parameter = this.parameters[this.currentParameterIndex];
-        let value = '';
+    showSelectedValue() { this.updateParameterDisplay(); }
 
-        switch (parameter) {
+    getAllOptionsForParameter(paramName) {
+        switch (paramName) {
+            case 'CLOCK MODEL':
+                if (this.multiClockInstance && this.multiClockInstance.clocks) return this.multiClockInstance.clocks.map(c => c.name);
+                return ['Analog', 'Digital', '7-Segment LED', 'Slim Analog', 'DSEG'];
             case 'SIZE':
-                value = Math.round(this.currentSizeMultiplier * 100) + '%';
-                break;
+                const sizeOptions = [];
+                for (let pct = 20; pct <= 300; pct += 10) sizeOptions.push(pct + '%');
+                return sizeOptions;
             case 'COLOR':
-                value = this.colors[this.currentColor].name;
-                break;
+                return this.colors.map(c => c.name);
             case 'SECONDS HAND':
-                value = this.secondsHandModes[this.currentSecondsHandMode].name;
-                break;
+                return this.secondsHandModes.map(m => m.name);
+            default:
+                return [];
         }
+    }
 
-        // Temporarily show the selected value
-        this.parameterDisplay.textContent = `${parameter}: ${value}`;
-
-        setTimeout(() => {
-            this.updateParameterDisplay();
-        }, 1000);
+    getCurrentSelectionForParameter(paramName) {
+        switch (paramName) {
+            case 'CLOCK MODEL':
+                if (this.multiClockInstance) return this.multiClockInstance.currentClockIndex;
+                return this.clockIndex || 0;
+            case 'SIZE':
+                const currentPct = Math.round(this.currentSizeMultiplier * 100);
+                const sizeIndex = Math.round((currentPct - 20) / 10);
+                return Math.max(0, Math.min(28, sizeIndex));
+            case 'COLOR':
+                return this.currentColor;
+            case 'SECONDS HAND':
+                return this.currentSecondsHandMode;
+            default:
+                return 0;
+        }
     }
 
     // Parameter navigation methods
@@ -398,6 +434,13 @@ export class AviationClock {
         console.log('[AviationClock] changeParameterLeft() - parameter:', parameter);
 
         switch (parameter) {
+            case 'CLOCK MODEL':
+                if (this.multiClockInstance) {
+                    const numClocks = this.multiClockInstance.clocks.length;
+                    const newIndex = (this.multiClockInstance.currentClockIndex - 1 + numClocks) % numClocks;
+                    this.multiClockInstance.switchToClock(newIndex);
+                }
+                return;
             case 'SIZE':
                 this.currentSizeMultiplier = Math.max(0.2, this.currentSizeMultiplier / 1.2);
                 console.log('[AviationClock] Changed size to:', this.currentSizeMultiplier);
@@ -425,6 +468,13 @@ export class AviationClock {
         const parameter = this.parameters[this.currentParameterIndex];
 
         switch (parameter) {
+            case 'CLOCK MODEL':
+                if (this.multiClockInstance) {
+                    const numClocks = this.multiClockInstance.clocks.length;
+                    const newIndex = (this.multiClockInstance.currentClockIndex + 1) % numClocks;
+                    this.multiClockInstance.switchToClock(newIndex);
+                }
+                return;
             case 'SIZE':
                 this.currentSizeMultiplier = Math.min(3.0, this.currentSizeMultiplier * 1.2);
                 this.buildClock();
