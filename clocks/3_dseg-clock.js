@@ -539,6 +539,11 @@ export class DSEGClock {
         this.parameterDisplay.innerHTML = html;
         this.parameterDisplay.style.display = 'block';
 
+        // Show clock number when parameter menu is visible
+        if (this.multiClockInstance && this.multiClockInstance.showClockNumber) {
+            this.multiClockInstance.showClockNumber();
+        }
+
         // Clear existing timeout
         if (this.parameterDisplayTimeout) {
             clearTimeout(this.parameterDisplayTimeout);
@@ -547,6 +552,10 @@ export class DSEGClock {
         // Auto-hide after 5 seconds
         this.parameterDisplayTimeout = setTimeout(() => {
             this.parameterDisplay.style.display = 'none';
+            // Hide clock number when parameter menu hides
+            if (this.multiClockInstance && this.multiClockInstance.hideClockNumber) {
+                this.multiClockInstance.hideClockNumber();
+            }
         }, 5000);
     }
 

@@ -209,7 +209,7 @@ export class AnalogClock {
         });
 
         this.dayText = new PIXI.Text('--', dayTextStyle);
-        this.dayText.x = this.clockX + 0.46 * this.ro;
+        this.dayText.x = this.clockX + 0.34 * this.ro; // Moved left by ~1 character width
         this.dayText.y = this.clockY - 0.5 * 0.11 * this.ro;
         this.watch.addChild(this.dayText);
     }
@@ -454,6 +454,11 @@ export class AnalogClock {
         this.parameterDisplay.innerHTML = html;
         this.parameterDisplay.style.display = 'block';
 
+        // Show clock number when parameter menu is visible
+        if (this.multiClockInstance && this.multiClockInstance.showClockNumber) {
+            this.multiClockInstance.showClockNumber();
+        }
+
         // Clear existing timeout
         if (this.parameterDisplayTimeout) {
             clearTimeout(this.parameterDisplayTimeout);
@@ -462,6 +467,10 @@ export class AnalogClock {
         // Auto-hide after 5 seconds
         this.parameterDisplayTimeout = setTimeout(() => {
             this.parameterDisplay.style.display = 'none';
+            // Hide clock number when parameter menu hides
+            if (this.multiClockInstance && this.multiClockInstance.hideClockNumber) {
+                this.multiClockInstance.hideClockNumber();
+            }
         }, 5000);
     }
 
