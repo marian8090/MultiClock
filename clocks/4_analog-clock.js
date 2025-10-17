@@ -225,8 +225,9 @@ export class AnalogClock2 {
             });
 
             this.dayText = new PIXI.Text('--', dayTextStyle);
-            this.dayText.x = this.clockX + 0.5 * this.ro;
-            this.dayText.y = this.clockY - 0.5 * 0.15 * this.ro;
+            this.dayText.anchor.set(1, 0.5); // Right-align text
+            this.dayText.x = this.clockX + 0.65 * this.ro; // Position within inner circle (closer to center)
+            this.dayText.y = this.clockY;
             this.watch.addChild(this.dayText);
         } else {
             this.dayText = null;
@@ -318,7 +319,6 @@ export class AnalogClock2 {
         const widthMult = this.widthMultipliers[this.currentWidthMultiplier].value;
         const w = 0.025 * this.ro * widthMult;
         const h = 0.6 * this.ro; // Extended from 0.5 to 0.6 (20% increase)
-        const darkerColor = this.getDarkerColor(this.color);
 
         this.hourHand.clear();
         this.hourHand.x = this.clockX;
@@ -328,8 +328,8 @@ export class AnalogClock2 {
         this.hourHand.drawRect(-w / 2, -h, w, h);
         this.hourHand.endFill();
 
-        // Small center circle
-        this.hourHand.beginFill(darkerColor);
+        // Small center circle - same color as rest
+        this.hourHand.beginFill(this.color);
         this.hourHand.drawCircle(0, 0, w);
         this.hourHand.endFill();
     }
@@ -339,7 +339,6 @@ export class AnalogClock2 {
         const widthMult = this.widthMultipliers[this.currentWidthMultiplier].value;
         const w = 0.02 * this.ro * widthMult;
         const h = 0.96 * this.ro; // Extended to reach minute tick marks (outer edge minus tick length)
-        const darkerColor = this.getDarkerColor(this.color);
 
         this.minuteHand.clear();
         this.minuteHand.x = this.clockX;
@@ -349,8 +348,8 @@ export class AnalogClock2 {
         this.minuteHand.drawRect(-w / 2, -h, w, h);
         this.minuteHand.endFill();
 
-        // Small center circle
-        this.minuteHand.beginFill(darkerColor);
+        // Small center circle - same color as rest
+        this.minuteHand.beginFill(this.color);
         this.minuteHand.drawCircle(0, 0, w * 1.2);
         this.minuteHand.endFill();
     }
@@ -401,29 +400,31 @@ export class AnalogClock2 {
             if (this.dayText) {
                 if (dateMode === 'day') {
                     this.dayText.text = t.getDate();
-                    this.dayText.style.align = 'center';
                 } else if (dateMode === 'weekday_day') {
                     const weekdayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
                     const weekday = weekdayNames[t.getDay()];
-                    this.dayText.text = `${weekday} ${t.getDate()}`;
-                    this.dayText.style.align = 'right';
+                    this.dayText.text = `${weekday}${t.getDate()}`; // No space between weekday and day
                 }
             }
 
             // Handle different second hand modes
             const secondsHandMode = this.secondsHandModes[this.currentSecondsHandMode].value;
-            if (secondsHandMode === '1hz') {
-                // 1Hz second hand updates - discrete jumps
-                this.secondHand.rotation = (t.getSeconds()) / 60 * 2 * Math.PI;
-            } else if (secondsHandMode === '60hz') {
-                // 60Hz second hand - smooth movement
-                this.secondHand.rotation = (t.getSeconds() + t.getMilliseconds() / 1000) / 60 * 2 * Math.PI;
-            }
-            // For 'none' mode, we don't update rotation (hand is invisible anyway)
 
-            // Smooth minute and hour hands
-            this.minuteHand.rotation = (t.getMinutes() + t.getSeconds() / 60) / 30 * Math.PI;
-            this.hourHand.rotation = (t.getHours() + t.getMinutes() / 60 + t.getSeconds() / 3600) * 30 / 180 * Math.PI;
+            // Update minute and hour hands based on mode
+            if (secondsHandMode === '60hz') {
+                // 60Hz mode - smooth movement with millisecond precision for all hands
+                const ms = t.getMilliseconds() / 1000;
+                this.secondHand.rotation = (t.getSeconds() + ms) / 60 * 2 * Math.PI;
+                this.minuteHand.rotation = (t.getMinutes() + (t.getSeconds() + ms) / 60) / 30 * Math.PI;
+                this.hourHand.rotation = (t.getHours() + (t.getMinutes() + (t.getSeconds() + ms) / 60) / 60) * 30 / 180 * Math.PI;
+            } else {
+                // 1Hz mode or None - discrete jumps (no milliseconds)
+                if (secondsHandMode === '1hz') {
+                    this.secondHand.rotation = t.getSeconds() / 60 * 2 * Math.PI;
+                }
+                this.minuteHand.rotation = (t.getMinutes() + t.getSeconds() / 60) / 30 * Math.PI;
+                this.hourHand.rotation = (t.getHours() + t.getMinutes() / 60 + t.getSeconds() / 3600) * 30 / 180 * Math.PI;
+            }
         };
 
         this.app.ticker.add(this.animationTicker);

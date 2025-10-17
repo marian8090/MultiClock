@@ -11,6 +11,7 @@ export class DigitalClock {
             { name: 'PMDG_NG3_DU_A', file: 'PMDG_NG3_DU_A.ttf' },
             { name: 'AppleII-PrintChar21', file: 'AppleII-PrintChar21.ttf' },
             { name: 'Perfect_DOS_VGA_437', file: 'Perfect DOS VGA 437.ttf' },
+            { name: 'lcddot_tr', file: 'lcddot_tr.ttf' },
             { name: 'Courier_New', file: null, family: '"Courier New", Courier, monospace' },
             { name: 'Monaco', file: null, family: 'Monaco, "Lucida Console", monospace' }
         ];
@@ -33,14 +34,16 @@ export class DigitalClock {
             { name: 'Pixelated', value: 'pixelated' }
         ];
 
+        // Available font sizes (in points, like MS Word) - same as Clock 5
+        this.fontSizes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 320, 340, 360, 380, 400];
+
         // Parameters
         this.parameters = ['CLOCK MODEL', 'FONT', 'FONTSIZE', 'FONT COLOUR', 'RENDERER'];
         this.currentParameterIndex = 0;
 
         // Current settings
         this.currentFont = 0;
-        this.baseFontSize = 19.5; // vmin
-        this.currentFontSizeMultiplier = 1.0;
+        this.currentFontSizeIndex = 9; // 72pt by default (index 9)
         this.currentColor = 0;
         this.currentRenderMode = 0; // Smooth by default
 
@@ -65,7 +68,7 @@ export class DigitalClock {
         if (savedSettings) {
             console.log('[DigitalClock] Calling loadSettings() with:', savedSettings);
             this.loadSettings(savedSettings);
-            console.log('[DigitalClock] After loadSettings() - currentFont:', this.currentFont, 'currentFontSizeMultiplier:', this.currentFontSizeMultiplier, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode);
+            console.log('[DigitalClock] After loadSettings() - currentFont:', this.currentFont, 'currentFontSizeIndex:', this.currentFontSizeIndex, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode);
         } else {
             console.log('[DigitalClock] No saved settings, using defaults');
         }
@@ -80,7 +83,7 @@ export class DigitalClock {
     getSettings() {
         const settings = {
             currentFont: this.currentFont,
-            currentFontSizeMultiplier: this.currentFontSizeMultiplier,
+            currentFontSizeIndex: this.currentFontSizeIndex,
             currentColor: this.currentColor,
             currentRenderMode: this.currentRenderMode
         };
@@ -96,9 +99,9 @@ export class DigitalClock {
             console.log('[DigitalClock] Setting currentFont to:', settings.currentFont);
             this.currentFont = settings.currentFont;
         }
-        if (settings.currentFontSizeMultiplier !== undefined && settings.currentFontSizeMultiplier >= 0.2 && settings.currentFontSizeMultiplier <= 5.0) {
-            console.log('[DigitalClock] Setting currentFontSizeMultiplier to:', settings.currentFontSizeMultiplier);
-            this.currentFontSizeMultiplier = settings.currentFontSizeMultiplier;
+        if (settings.currentFontSizeIndex !== undefined && settings.currentFontSizeIndex >= 0 && settings.currentFontSizeIndex < this.fontSizes.length) {
+            console.log('[DigitalClock] Setting currentFontSizeIndex to:', settings.currentFontSizeIndex);
+            this.currentFontSizeIndex = settings.currentFontSizeIndex;
         }
         if (settings.currentColor !== undefined && settings.currentColor >= 0 && settings.currentColor < this.colors.length) {
             console.log('[DigitalClock] Setting currentColor to:', settings.currentColor);
@@ -109,7 +112,7 @@ export class DigitalClock {
             this.currentRenderMode = settings.currentRenderMode;
         }
 
-        console.log('[DigitalClock] loadSettings() complete. Final values - currentFont:', this.currentFont, 'currentFontSizeMultiplier:', this.currentFontSizeMultiplier, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode);
+        console.log('[DigitalClock] loadSettings() complete. Final values - currentFont:', this.currentFont, 'currentFontSizeIndex:', this.currentFontSizeIndex, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode);
     }
 
     // Save current settings
@@ -140,8 +143,9 @@ export class DigitalClock {
         const currentColor = this.colors[this.currentColor].value;
         const renderMode = this.renderModes[this.currentRenderMode].value;
 
-        let clockFontSize = this.baseFontSize * this.currentFontSizeMultiplier;
-        let dateFontSize = (this.baseFontSize * 0.7) * this.currentFontSizeMultiplier;
+        // Convert point sizes to vmin (1pt ≈ 0.13889vmin)
+        let clockFontSize = this.fontSizes[this.currentFontSizeIndex] * 0.13889;
+        let dateFontSize = clockFontSize * 0.7; // 70% of time size
 
         // Apply pixel-perfect rounding for crisp and pixelated modes
         if (renderMode === 'crisp' || renderMode === 'pixelated') {
@@ -360,12 +364,7 @@ export class DigitalClock {
             case 'FONT':
                 return this.fonts.map(f => f.name.replace(/_/g, ' '));
             case 'FONTSIZE':
-                // Generate size options from 20% to 500%
-                const sizeOptions = [];
-                for (let pct = 20; pct <= 500; pct += 10) {
-                    sizeOptions.push(pct + '%');
-                }
-                return sizeOptions;
+                return this.fontSizes.map(s => s.toString());
             case 'FONT COLOUR':
                 return this.colors.map(c => c.name);
             case 'RENDERER':
@@ -387,10 +386,7 @@ export class DigitalClock {
             case 'FONT':
                 return this.currentFont;
             case 'FONTSIZE':
-                // Calculate which size option index matches current multiplier
-                const currentPct = Math.round(this.currentFontSizeMultiplier * 100);
-                const sizeIndex = Math.round((currentPct - 20) / 10);
-                return Math.max(0, Math.min(48, sizeIndex)); // Clamp to valid range
+                return this.currentFontSizeIndex;
             case 'FONT COLOUR':
                 return this.currentColor;
             case 'RENDERER':
@@ -428,7 +424,7 @@ export class DigitalClock {
                 this.updateStyles();
                 break;
             case 'FONTSIZE':
-                this.currentFontSizeMultiplier = Math.max(0.2, this.currentFontSizeMultiplier / 1.2);
+                this.currentFontSizeIndex = (this.currentFontSizeIndex - 1 + this.fontSizes.length) % this.fontSizes.length;
                 this.updateStyles();
                 break;
             case 'FONT COLOUR':
@@ -462,7 +458,7 @@ export class DigitalClock {
                 this.updateStyles();
                 break;
             case 'FONTSIZE':
-                this.currentFontSizeMultiplier = Math.min(5.0, this.currentFontSizeMultiplier * 1.2);
+                this.currentFontSizeIndex = (this.currentFontSizeIndex + 1) % this.fontSizes.length;
                 this.updateStyles();
                 break;
             case 'FONT COLOUR':

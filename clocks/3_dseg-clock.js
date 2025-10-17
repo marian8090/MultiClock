@@ -264,7 +264,7 @@ export class DSEGClock {
             }
 
             .dseg-time-container {
-                margin-bottom: 0.3em;
+                margin-bottom: 0.5em;
                 display: flex;
                 justify-content: center;
                 align-items: baseline;
