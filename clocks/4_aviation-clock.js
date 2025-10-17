@@ -32,7 +32,7 @@ export class AviationClock {
         ];
 
         // Parameters
-        this.parameters = ['SIZE', 'COLOR', 'SECONDS HAND'];
+        this.parameters = ['CLOCK MODEL', 'SIZE', 'COLOR', 'SECONDS HAND'];
         this.currentParameterIndex = 0;
 
         // Current settings - Default to Green (index 0)
@@ -48,6 +48,9 @@ export class AviationClock {
         // Settings manager (will be set by MultiClock)
         this.settingsManager = null;
         this.clockIndex = null;
+
+        // Reference to MultiClock instance for clock switching
+        this.multiClockInstance = null;
     }
 
     async init(container, savedSettings = null) {

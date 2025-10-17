@@ -25,7 +25,7 @@ export class AnalogClock {
         ];
 
         // Parameters
-        this.parameters = ['SIZE', 'COLOR'];
+        this.parameters = ['CLOCK MODEL', 'SIZE', 'COLOR'];
         this.currentParameterIndex = 0;
 
         // Current settings
@@ -40,6 +40,9 @@ export class AnalogClock {
         // Settings manager (will be set by MultiClock)
         this.settingsManager = null;
         this.clockIndex = null;
+
+        // Reference to MultiClock instance for clock switching
+        this.multiClockInstance = null;
     }
 
     async init(container, savedSettings = null) {
@@ -354,18 +357,57 @@ export class AnalogClock {
             style.textContent = `
                 .analog-parameter-display {
                     position: fixed;
-                    top: 20px;
-                    left: 20px;
+                    top: 0;
+                    left: 0;
                     color: #00ff00;
-                    font-size: 14px;
+                    font-size: 12px;
                     z-index: 1000;
                     font-family: 'Courier New', Courier, monospace;
-                    opacity: 0.9;
-                    white-space: pre;
-                    line-height: 1.4;
-                    background: rgba(0, 0, 0, 0.7);
+                    line-height: 1;
+                    background: rgba(0, 0, 0, 0.3);
                     padding: 8px;
-                    border-radius: 4px;
+                    max-width: 90vw;
+                    overflow-x: auto;
+                }
+
+                .analog-parameter-row {
+                    margin: 0;
+                    padding: 0;
+                    white-space: nowrap;
+                }
+
+                .analog-parameter-row.active .parameter-name {
+                    background: #00ff00;
+                    color: #000000;
+                }
+
+                .analog-parameter-row.active .parameter-option.selected {
+                    background: #00ff00;
+                    color: #000000;
+                    font-weight: bold;
+                }
+
+                .analog-parameter-name {
+                    display: inline;
+                    color: #00ff00;
+                }
+
+                .analog-parameter-options {
+                    display: inline;
+                    color: #888888;
+                }
+
+                .analog-parameter-option {
+                    display: inline;
+                }
+
+                .analog-parameter-option.selected {
+                    font-weight: bold;
+                    color: #00ff00;
+                }
+
+                .analog-parameter-separator {
+                    color: #444444;
                 }
             `;
             document.head.appendChild(style);
@@ -378,19 +420,32 @@ export class AnalogClock {
     }
 
     updateParameterDisplay() {
-        const parameter = this.parameters[this.currentParameterIndex];
-        let value = '';
+        // Build complete menu showing all parameters with all options
+        let html = '';
 
-        switch (parameter) {
-            case 'SIZE':
-                value = Math.round(this.currentSizeMultiplier * 100) + '%';
-                break;
-            case 'COLOR':
-                value = this.colors[this.currentColor].name;
-                break;
-        }
+        this.parameters.forEach((paramName, paramIndex) => {
+            const isActive = paramIndex === this.currentParameterIndex;
+            const activeClass = isActive ? ' active' : '';
 
-        this.parameterDisplay.textContent = `${parameter}: ${value}`;
+            // Get all options for this parameter
+            const allOptions = this.getAllOptionsForParameter(paramName);
+            const currentSelection = this.getCurrentSelectionForParameter(paramName);
+
+            // Build options HTML with separators (single space between words)
+            const optionsHtml = allOptions.map((option, optionIndex) => {
+                const isSelected = optionIndex === currentSelection;
+                const selectedClass = isSelected ? ' selected' : '';
+                const separator = optionIndex < allOptions.length - 1 ? '<span class="analog-parameter-separator"> </span>' : '';
+                return `<span class="analog-parameter-option${selectedClass}">${option}</span>${separator}`;
+            }).join('');
+
+            html += `<div class="analog-parameter-row${activeClass}">`;
+            html += `<span class="analog-parameter-name">${paramName}: </span>`;
+            html += `<span class="analog-parameter-options">${optionsHtml}</span>`;
+            html += `</div>`;
+        });
+
+        this.parameterDisplay.innerHTML = html;
         this.parameterDisplay.style.display = 'block';
 
         // Clear existing timeout
@@ -405,24 +460,52 @@ export class AnalogClock {
     }
 
     showSelectedValue() {
-        const parameter = this.parameters[this.currentParameterIndex];
-        let value = '';
+        // Just update the display - it will show all parameters with the new selection highlighted
+        this.updateParameterDisplay();
+    }
 
-        switch (parameter) {
+    // Helper method to get all options for a parameter
+    getAllOptionsForParameter(paramName) {
+        switch (paramName) {
+            case 'CLOCK MODEL':
+                // Get clock names from MultiClock instance if available
+                if (this.multiClockInstance && this.multiClockInstance.clocks) {
+                    return this.multiClockInstance.clocks.map(c => c.name);
+                }
+                return ['Analog', 'Digital', '7-Segment LED', 'Slim Analog', 'DSEG'];
             case 'SIZE':
-                value = Math.round(this.currentSizeMultiplier * 100) + '%';
-                break;
+                // Generate size options from 20% to 300%
+                const sizeOptions = [];
+                for (let pct = 20; pct <= 300; pct += 10) {
+                    sizeOptions.push(pct + '%');
+                }
+                return sizeOptions;
             case 'COLOR':
-                value = this.colors[this.currentColor].name;
-                break;
+                return this.colors.map(c => c.name);
+            default:
+                return [];
         }
+    }
 
-        // Temporarily show the selected value
-        this.parameterDisplay.textContent = `${parameter}: ${value}`;
-
-        setTimeout(() => {
-            this.updateParameterDisplay();
-        }, 1000);
+    // Get current selected index for a parameter
+    getCurrentSelectionForParameter(paramName) {
+        switch (paramName) {
+            case 'CLOCK MODEL':
+                // Get current clock index from MultiClock instance if available
+                if (this.multiClockInstance) {
+                    return this.multiClockInstance.currentClockIndex;
+                }
+                return this.clockIndex || 0;
+            case 'SIZE':
+                // Calculate which size option index matches current multiplier
+                const currentPct = Math.round(this.currentSizeMultiplier * 100);
+                const sizeIndex = Math.round((currentPct - 20) / 10);
+                return Math.max(0, Math.min(28, sizeIndex)); // Clamp to valid range
+            case 'COLOR':
+                return this.currentColor;
+            default:
+                return 0;
+        }
     }
 
     // Parameter navigation methods
@@ -440,6 +523,14 @@ export class AnalogClock {
         const parameter = this.parameters[this.currentParameterIndex];
 
         switch (parameter) {
+            case 'CLOCK MODEL':
+                // Switch to previous clock
+                if (this.multiClockInstance) {
+                    const numClocks = this.multiClockInstance.clocks.length;
+                    const newIndex = (this.multiClockInstance.currentClockIndex - 1 + numClocks) % numClocks;
+                    this.multiClockInstance.switchToClock(newIndex);
+                }
+                return; // Don't save settings or show value (clock is switching)
             case 'SIZE':
                 this.currentSizeMultiplier = Math.max(0.2, this.currentSizeMultiplier / 1.2);
                 this.buildClock();
@@ -458,6 +549,14 @@ export class AnalogClock {
         const parameter = this.parameters[this.currentParameterIndex];
 
         switch (parameter) {
+            case 'CLOCK MODEL':
+                // Switch to next clock
+                if (this.multiClockInstance) {
+                    const numClocks = this.multiClockInstance.clocks.length;
+                    const newIndex = (this.multiClockInstance.currentClockIndex + 1) % numClocks;
+                    this.multiClockInstance.switchToClock(newIndex);
+                }
+                return; // Don't save settings or show value (clock is switching)
             case 'SIZE':
                 this.currentSizeMultiplier = Math.min(3.0, this.currentSizeMultiplier * 1.2);
                 this.buildClock();

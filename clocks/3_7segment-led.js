@@ -25,7 +25,7 @@ export class SevenSegmentLedClock {
         ];
 
         // Parameters
-        this.parameters = ['FONTSIZE', 'FONT COLOUR', 'RENDERER'];
+        this.parameters = ['CLOCK MODEL', 'FONTSIZE', 'FONT COLOUR', 'RENDERER'];
         this.currentParameterIndex = 0;
 
         // Current settings
@@ -42,6 +42,9 @@ export class SevenSegmentLedClock {
         // Settings manager (will be set by MultiClock)
         this.settingsManager = null;
         this.clockIndex = null;
+
+        // Reference to MultiClock instance for clock switching
+        this.multiClockInstance = null;
     }
 
     init(container, savedSettings = null) {
@@ -172,18 +175,49 @@ export class SevenSegmentLedClock {
 
             .parameter-display {
                 position: fixed;
-                top: 20px;
-                left: 20px;
+                top: 0;
+                left: 0;
                 color: #00ff00;
-                font-size: 14px;
+                font-size: 12px;
                 z-index: 1000;
                 font-family: 'Courier New', Courier, monospace;
-                opacity: 0.9;
-                white-space: pre;
-                line-height: 1.4;
-                background: rgba(0, 0, 0, 0.7);
+                line-height: 1;
+                background: rgba(0, 0, 0, 0.3);
                 padding: 8px;
-                border-radius: 4px;
+                max-width: 90vw;
+                overflow-x: auto;
+            }
+            .parameter-row {
+                margin: 0;
+                padding: 0;
+                white-space: nowrap;
+            }
+            .parameter-row.active .parameter-name {
+                background: #00ff00;
+                color: #000000;
+            }
+            .parameter-row.active .parameter-option.selected {
+                background: #00ff00;
+                color: #000000;
+                font-weight: bold;
+            }
+            .parameter-name {
+                display: inline;
+                color: #00ff00;
+            }
+            .parameter-options {
+                display: inline;
+                color: #888888;
+            }
+            .parameter-option {
+                display: inline;
+            }
+            .parameter-option.selected {
+                font-weight: bold;
+                color: #00ff00;
+            }
+            .parameter-separator {
+                color: #444444;
             }
         `;
     }
@@ -241,57 +275,62 @@ export class SevenSegmentLedClock {
     }
 
     updateParameterDisplay() {
-        const parameter = this.parameters[this.currentParameterIndex];
-        let value = '';
-
-        switch (parameter) {
-            case 'FONTSIZE':
-                value = Math.round(this.currentFontSizeMultiplier * 100) + '%';
-                break;
-            case 'FONT COLOUR':
-                value = this.colors[this.currentColor].name;
-                break;
-            case 'RENDERER':
-                value = this.renderModes[this.currentRenderMode].name;
-                break;
-        }
-
-        this.parameterDisplay.textContent = `${parameter}: ${value}`;
+        let html = '';
+        this.parameters.forEach((paramName, paramIndex) => {
+            const isActive = paramIndex === this.currentParameterIndex;
+            const activeClass = isActive ? ' active' : '';
+            const allOptions = this.getAllOptionsForParameter(paramName);
+            const currentSelection = this.getCurrentSelectionForParameter(paramName);
+            const optionsHtml = allOptions.map((option, optionIndex) => {
+                const isSelected = optionIndex === currentSelection;
+                const selectedClass = isSelected ? ' selected' : '';
+                const separator = optionIndex < allOptions.length - 1 ? '<span class="parameter-separator"> </span>' : '';
+                return `<span class="parameter-option${selectedClass}">${option}</span>${separator}`;
+            }).join('');
+            html += `<div class="parameter-row${activeClass}"><span class="parameter-name">${paramName}: </span><span class="parameter-options">${optionsHtml}</span></div>`;
+        });
+        this.parameterDisplay.innerHTML = html;
         this.parameterDisplay.style.display = 'block';
-
-        // Clear existing timeout
-        if (this.parameterDisplayTimeout) {
-            clearTimeout(this.parameterDisplayTimeout);
-        }
-
-        // Auto-hide after 5 seconds
-        this.parameterDisplayTimeout = setTimeout(() => {
-            this.parameterDisplay.style.display = 'none';
-        }, 5000);
+        if (this.parameterDisplayTimeout) clearTimeout(this.parameterDisplayTimeout);
+        this.parameterDisplayTimeout = setTimeout(() => { this.parameterDisplay.style.display = 'none'; }, 5000);
     }
 
-    showSelectedValue() {
-        const parameter = this.parameters[this.currentParameterIndex];
-        let value = '';
+    showSelectedValue() { this.updateParameterDisplay(); }
 
-        switch (parameter) {
+    getAllOptionsForParameter(paramName) {
+        switch (paramName) {
+            case 'CLOCK MODEL':
+                if (this.multiClockInstance && this.multiClockInstance.clocks) return this.multiClockInstance.clocks.map(c => c.name);
+                return ['Analog', 'Digital', '7-Segment LED', 'Slim Analog', 'DSEG'];
             case 'FONTSIZE':
-                value = Math.round(this.currentFontSizeMultiplier * 100) + '%';
-                break;
+                const sizeOptions = [];
+                for (let pct = 20; pct <= 500; pct += 10) sizeOptions.push(pct + '%');
+                return sizeOptions;
             case 'FONT COLOUR':
-                value = this.colors[this.currentColor].name;
-                break;
+                return this.colors.map(c => c.name);
             case 'RENDERER':
-                value = this.renderModes[this.currentRenderMode].name;
-                break;
+                return this.renderModes.map(r => r.name);
+            default:
+                return [];
         }
+    }
 
-        // Temporarily show the selected value
-        this.parameterDisplay.textContent = `${parameter}: ${value}`;
-
-        setTimeout(() => {
-            this.updateParameterDisplay();
-        }, 1000);
+    getCurrentSelectionForParameter(paramName) {
+        switch (paramName) {
+            case 'CLOCK MODEL':
+                if (this.multiClockInstance) return this.multiClockInstance.currentClockIndex;
+                return this.clockIndex || 0;
+            case 'FONTSIZE':
+                const currentPct = Math.round(this.currentFontSizeMultiplier * 100);
+                const sizeIndex = Math.round((currentPct - 20) / 10);
+                return Math.max(0, Math.min(48, sizeIndex));
+            case 'FONT COLOUR':
+                return this.currentColor;
+            case 'RENDERER':
+                return this.currentRenderMode;
+            default:
+                return 0;
+        }
     }
 
     // Parameter navigation methods
@@ -307,8 +346,14 @@ export class SevenSegmentLedClock {
 
     changeParameterLeft() {
         const parameter = this.parameters[this.currentParameterIndex];
-
         switch (parameter) {
+            case 'CLOCK MODEL':
+                if (this.multiClockInstance) {
+                    const numClocks = this.multiClockInstance.clocks.length;
+                    const newIndex = (this.multiClockInstance.currentClockIndex - 1 + numClocks) % numClocks;
+                    this.multiClockInstance.switchToClock(newIndex);
+                }
+                return;
             case 'FONTSIZE':
                 this.currentFontSizeMultiplier = Math.max(0.2, this.currentFontSizeMultiplier / 1.2);
                 this.updateStyles();
@@ -322,15 +367,20 @@ export class SevenSegmentLedClock {
                 this.updateStyles();
                 break;
         }
-
         this.saveSettings();
         this.showSelectedValue();
     }
 
     changeParameterRight() {
         const parameter = this.parameters[this.currentParameterIndex];
-
         switch (parameter) {
+            case 'CLOCK MODEL':
+                if (this.multiClockInstance) {
+                    const numClocks = this.multiClockInstance.clocks.length;
+                    const newIndex = (this.multiClockInstance.currentClockIndex + 1) % numClocks;
+                    this.multiClockInstance.switchToClock(newIndex);
+                }
+                return;
             case 'FONTSIZE':
                 this.currentFontSizeMultiplier = Math.min(5.0, this.currentFontSizeMultiplier * 1.2);
                 this.updateStyles();
@@ -344,7 +394,6 @@ export class SevenSegmentLedClock {
                 this.updateStyles();
                 break;
         }
-
         this.saveSettings();
         this.showSelectedValue();
     }
