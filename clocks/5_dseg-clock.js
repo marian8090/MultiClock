@@ -231,7 +231,7 @@ export class DSEGClock {
                 font-size: ${clockFontSize}vmin;
                 font-weight: normal;
                 letter-spacing: 0.05em;
-                margin-bottom: 0.5em;
+                margin-bottom: 0.3em;
                 ${renderingCSS.text}
             }
 
@@ -239,7 +239,7 @@ export class DSEGClock {
                 font-size: ${weekdayFontSize}vmin;
                 font-weight: normal;
                 letter-spacing: 0.05em;
-                margin-bottom: 0.5em;
+                margin-bottom: 0.3em;
                 font-family: '${weekdayFontFamily}', monospace;
                 ${renderingCSS.text}
             }
