@@ -45,8 +45,18 @@ export class AnalogClock2 {
             { name: 'WEEKDAY+DAY', value: 'weekday_day' }
         ];
 
+        // Available width multipliers
+        this.widthMultipliers = [
+            { name: '1x', value: 1.0 },
+            { name: '1.5x', value: 1.5 },
+            { name: '2x', value: 2.0 },
+            { name: '3x', value: 3.0 },
+            { name: '4x', value: 4.0 },
+            { name: '5x', value: 5.0 }
+        ];
+
         // Parameters
-        this.parameters = ['CLOCK MODEL', 'SIZE', 'COLOR', 'SECONDS HAND', 'HOUR TICKS', 'DATE'];
+        this.parameters = ['CLOCK MODEL', 'SIZE', 'COLOR', 'SECONDS HAND', 'TICKS', 'DATE', 'WIDTH'];
         this.currentParameterIndex = 0;
 
         // Current settings - Default to Green (index 0)
@@ -56,6 +66,7 @@ export class AnalogClock2 {
         this.currentSecondsHandMode = 0; // 1Hz default
         this.currentHourTicksMode = 0; // None default
         this.currentDateMode = 1; // DAY default
+        this.currentWidthMultiplier = 0; // 1x default
 
         // Parameter display element
         this.parameterDisplay = null;
@@ -110,7 +121,8 @@ export class AnalogClock2 {
             currentColor: this.currentColor,
             currentSecondsHandMode: this.currentSecondsHandMode,
             currentHourTicksMode: this.currentHourTicksMode,
-            currentDateMode: this.currentDateMode
+            currentDateMode: this.currentDateMode,
+            currentWidthMultiplier: this.currentWidthMultiplier
         };
         console.log('[AnalogClock2] getSettings() returning:', settings);
         return settings;
@@ -140,8 +152,12 @@ export class AnalogClock2 {
             console.log('[AnalogClock2] Setting currentDateMode to:', settings.currentDateMode);
             this.currentDateMode = settings.currentDateMode;
         }
+        if (settings.currentWidthMultiplier !== undefined && settings.currentWidthMultiplier >= 0 && settings.currentWidthMultiplier < this.widthMultipliers.length) {
+            console.log('[AnalogClock2] Setting currentWidthMultiplier to:', settings.currentWidthMultiplier);
+            this.currentWidthMultiplier = settings.currentWidthMultiplier;
+        }
 
-        console.log('[AnalogClock2] loadSettings() complete. Final values - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor, 'currentSecondsHandMode:', this.currentSecondsHandMode, 'currentHourTicksMode:', this.currentHourTicksMode, 'currentDateMode:', this.currentDateMode);
+        console.log('[AnalogClock2] loadSettings() complete. Final values - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor, 'currentSecondsHandMode:', this.currentSecondsHandMode, 'currentHourTicksMode:', this.currentHourTicksMode, 'currentDateMode:', this.currentDateMode, 'currentWidthMultiplier:', this.currentWidthMultiplier);
     }
 
     // Save current settings
@@ -219,10 +235,11 @@ export class AnalogClock2 {
 
     buildSmallHourTicks() {
         // Draw 12 hour tick marks (small size)
+        const widthMult = this.widthMultipliers[this.currentWidthMultiplier].value;
         for (let i = 0; i < 12; i++) {
             const angle = (i * 30) * Math.PI / 180;
             const tickLength = 0.06 * this.ro; // Small tick length
-            const tickWidth = 0.008 * this.ro; // Thin tick width
+            const tickWidth = 0.008 * this.ro * widthMult; // Thin tick width with multiplier
 
             const x1 = this.clockX + Math.sin(angle) * (this.ro - tickLength);
             const y1 = this.clockY - Math.cos(angle) * (this.ro - tickLength);
@@ -239,10 +256,11 @@ export class AnalogClock2 {
 
     buildLargeTickMarks() {
         // Draw 12 large hour tick marks
+        const widthMult = this.widthMultipliers[this.currentWidthMultiplier].value;
         for (let i = 0; i < 12; i++) {
             const angle = (i * 30) * Math.PI / 180;
             const tickLength = 0.1 * this.ro; // Larger tick length for hour marks
-            const tickWidth = 0.015 * this.ro; // Thicker tick width for hour marks
+            const tickWidth = 0.015 * this.ro * widthMult; // Thicker tick width for hour marks
 
             const x1 = this.clockX + Math.sin(angle) * (this.ro - tickLength);
             const y1 = this.clockY - Math.cos(angle) * (this.ro - tickLength);
@@ -262,7 +280,7 @@ export class AnalogClock2 {
             if (i % 5 !== 0) {
                 const angle = (i * 6) * Math.PI / 180;
                 const tickLength = 0.04 * this.ro; // Smaller tick length for minute marks
-                const tickWidth = 0.005 * this.ro; // Thin tick width for minute marks
+                const tickWidth = 0.005 * this.ro * widthMult; // Thin tick width for minute marks
 
                 const x1 = this.clockX + Math.sin(angle) * (this.ro - tickLength);
                 const y1 = this.clockY - Math.cos(angle) * (this.ro - tickLength);
@@ -296,9 +314,10 @@ export class AnalogClock2 {
     }
 
     buildHourHand() {
-        // Slim hour hand
-        const w = 0.025 * this.ro;
-        const h = 0.5 * this.ro;
+        // Hour hand - extended proportionally
+        const widthMult = this.widthMultipliers[this.currentWidthMultiplier].value;
+        const w = 0.025 * this.ro * widthMult;
+        const h = 0.6 * this.ro; // Extended from 0.5 to 0.6 (20% increase)
         const darkerColor = this.getDarkerColor(this.color);
 
         this.hourHand.clear();
@@ -316,9 +335,10 @@ export class AnalogClock2 {
     }
 
     buildMinuteHand() {
-        // Slim minute hand
-        const w = 0.02 * this.ro;
-        const h = 0.75 * this.ro;
+        // Minute hand - extended to touch minute tick marks
+        const widthMult = this.widthMultipliers[this.currentWidthMultiplier].value;
+        const w = 0.02 * this.ro * widthMult;
+        const h = 0.96 * this.ro; // Extended to reach minute tick marks (outer edge minus tick length)
         const darkerColor = this.getDarkerColor(this.color);
 
         this.minuteHand.clear();
@@ -342,12 +362,13 @@ export class AnalogClock2 {
 
         // Only draw second hand if not in 'none' mode
         if (this.secondsHandModes[this.currentSecondsHandMode].value !== 'none') {
-            // Ultra-slim second hand
-            const w = 0.008 * this.ro;
-            const h = 0.8 * this.ro;
-            const darkerColor = this.getDarkerColor(this.color);
+            // Second hand - extended to touch minute tick marks, bright color
+            const widthMult = this.widthMultipliers[this.currentWidthMultiplier].value;
+            const w = 0.008 * this.ro * widthMult;
+            const h = 0.96 * this.ro; // Extended to reach minute tick marks
 
-            this.secondHand.beginFill(darkerColor);
+            // Use bright color (full color instead of darker)
+            this.secondHand.beginFill(this.color);
 
             // Simple thin rectangle
             this.secondHand.drawRect(-w / 2, -h, w, h);
@@ -380,10 +401,12 @@ export class AnalogClock2 {
             if (this.dayText) {
                 if (dateMode === 'day') {
                     this.dayText.text = t.getDate();
+                    this.dayText.style.align = 'center';
                 } else if (dateMode === 'weekday_day') {
                     const weekdayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
                     const weekday = weekdayNames[t.getDay()];
-                    this.dayText.text = `${weekday}\n${t.getDate()}`;
+                    this.dayText.text = `${weekday} ${t.getDate()}`;
+                    this.dayText.style.align = 'right';
                 }
             }
 
@@ -504,10 +527,12 @@ export class AnalogClock2 {
                 return this.colors.map(c => c.name);
             case 'SECONDS HAND':
                 return this.secondsHandModes.map(m => m.name);
-            case 'HOUR TICKS':
+            case 'TICKS':
                 return this.hourTicksModes.map(m => m.name);
             case 'DATE':
                 return this.dateModes.map(m => m.name);
+            case 'WIDTH':
+                return this.widthMultipliers.map(m => m.name);
             default:
                 return [];
         }
@@ -526,10 +551,12 @@ export class AnalogClock2 {
                 return this.currentColor;
             case 'SECONDS HAND':
                 return this.currentSecondsHandMode;
-            case 'HOUR TICKS':
+            case 'TICKS':
                 return this.currentHourTicksMode;
             case 'DATE':
                 return this.currentDateMode;
+            case 'WIDTH':
+                return this.currentWidthMultiplier;
             default:
                 return 0;
         }
@@ -575,14 +602,19 @@ export class AnalogClock2 {
                 this.updateFPS();
                 this.buildClock();
                 break;
-            case 'HOUR TICKS':
+            case 'TICKS':
                 this.currentHourTicksMode = (this.currentHourTicksMode - 1 + this.hourTicksModes.length) % this.hourTicksModes.length;
-                console.log('[AnalogClock2] Changed hour ticks mode to:', this.currentHourTicksMode);
+                console.log('[AnalogClock2] Changed ticks mode to:', this.currentHourTicksMode);
                 this.buildClock();
                 break;
             case 'DATE':
                 this.currentDateMode = (this.currentDateMode - 1 + this.dateModes.length) % this.dateModes.length;
                 console.log('[AnalogClock2] Changed date mode to:', this.currentDateMode);
+                this.buildClock();
+                break;
+            case 'WIDTH':
+                this.currentWidthMultiplier = (this.currentWidthMultiplier - 1 + this.widthMultipliers.length) % this.widthMultipliers.length;
+                console.log('[AnalogClock2] Changed width multiplier to:', this.currentWidthMultiplier);
                 this.buildClock();
                 break;
         }
@@ -616,12 +648,16 @@ export class AnalogClock2 {
                 this.updateFPS();
                 this.buildClock();
                 break;
-            case 'HOUR TICKS':
+            case 'TICKS':
                 this.currentHourTicksMode = (this.currentHourTicksMode + 1) % this.hourTicksModes.length;
                 this.buildClock();
                 break;
             case 'DATE':
                 this.currentDateMode = (this.currentDateMode + 1) % this.dateModes.length;
+                this.buildClock();
+                break;
+            case 'WIDTH':
+                this.currentWidthMultiplier = (this.currentWidthMultiplier + 1) % this.widthMultipliers.length;
                 this.buildClock();
                 break;
         }
