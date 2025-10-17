@@ -2,12 +2,15 @@ export class DSEGClock {
     constructor() {
         this.container = null;
         this.clockElement = null;
+        this.timeContainer = null;
         this.weekdayDateElement = null;
         this.temperatureElement = null;
         this.updateInterval = null;
         this.temperatureFetchInterval = null;
         this.styleElement = null;
         this.currentTemperature = '--';
+        this.currentTempHigh = '--';
+        this.currentTempLow = '--';
 
         // Available font types
         this.fontTypes = [
@@ -47,6 +50,7 @@ export class DSEGClock {
         // Available seconds display modes
         this.secondsDisplayModes = [
             { name: 'Show', value: 'show' },
+            { name: 'Small', value: 'small' },
             { name: 'Hide', value: 'hide' }
         ];
 
@@ -202,12 +206,17 @@ export class DSEGClock {
         let dateFontSize = this.dateFontSizes[this.currentDateFontSizeIndex] * 0.13889;
         let weekdayFontSize = dateFontSize; // Same size as date
 
+        // Calculate small seconds font size (one step smaller)
+        const smallSecondsIndex = Math.max(0, this.currentTimeFontSizeIndex - 1);
+        let smallSecondsFontSize = this.timeFontSizes[smallSecondsIndex] * 0.13889;
+
         // Apply pixel-perfect rounding for crisp and pixelated modes
         if (renderMode === 'crisp' || renderMode === 'pixelated') {
             const vminToPx = Math.min(window.innerWidth, window.innerHeight) / 100;
             clockFontSize = Math.round(clockFontSize * vminToPx) / vminToPx;
             dateFontSize = Math.round(dateFontSize * vminToPx) / vminToPx;
             weekdayFontSize = Math.round(weekdayFontSize * vminToPx) / vminToPx;
+            smallSecondsFontSize = Math.round(smallSecondsFontSize * vminToPx) / vminToPx;
         }
 
         // Generate rendering CSS based on mode
@@ -242,11 +251,24 @@ export class DSEGClock {
                 text-align: center;
             }
 
+            .dseg-time-container {
+                margin-bottom: 0.3em;
+                display: flex;
+                justify-content: center;
+                align-items: baseline;
+            }
+
             .dseg-time {
                 font-size: ${clockFontSize}vmin;
                 font-weight: normal;
                 letter-spacing: 0.05em;
-                margin-bottom: 0.3em;
+                ${renderingCSS.text}
+            }
+
+            .dseg-time-small-seconds {
+                font-size: ${smallSecondsFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0.05em;
                 ${renderingCSS.text}
             }
 
@@ -386,8 +408,14 @@ export class DSEGClock {
         const display = document.createElement('div');
         display.className = 'dseg-display';
 
-        this.clockElement = document.createElement('div');
+        // Create container for time that can hold both main time and small seconds
+        this.timeContainer = document.createElement('div');
+        this.timeContainer.className = 'dseg-time-container';
+
+        this.clockElement = document.createElement('span');
         this.clockElement.className = 'dseg-time';
+
+        this.timeContainer.appendChild(this.clockElement);
 
         this.weekdayDateElement = document.createElement('div');
         this.weekdayDateElement.className = 'dseg-weekday-date';
@@ -395,7 +423,7 @@ export class DSEGClock {
         this.temperatureElement = document.createElement('div');
         this.temperatureElement.className = 'dseg-temperature';
 
-        display.appendChild(this.clockElement);
+        display.appendChild(this.timeContainer);
         display.appendChild(this.weekdayDateElement);
         display.appendChild(this.temperatureElement);
         clockContainer.appendChild(display);
@@ -604,26 +632,34 @@ export class DSEGClock {
         const secondsMode = this.secondsDisplayModes[this.currentSecondsDisplay].value;
         const weekdayMode = this.weekdayDisplayModes[this.currentWeekdayDisplay].value;
 
-        let timeString;
+        const hours = String(now.getHours()).padStart(2, '0');
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const seconds = String(now.getSeconds()).padStart(2, '0');
+
+        // Remove any existing small seconds element
+        const existingSmallSeconds = this.timeContainer.querySelector('.dseg-time-small-seconds');
+        if (existingSmallSeconds) {
+            existingSmallSeconds.remove();
+        }
+
         if (secondsMode === 'show') {
-            // Show seconds
-            timeString = now.toLocaleTimeString('en-US', {
-                hour12: false,
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit'
-            });
+            // Show seconds at regular size
+            this.clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+        } else if (secondsMode === 'small') {
+            // Show main time without seconds
+            this.clockElement.textContent = `${hours}:${minutes}`;
+
+            // Create and append small seconds element
+            const smallSecondsElement = document.createElement('span');
+            smallSecondsElement.className = 'dseg-time-small-seconds';
+            smallSecondsElement.textContent = `:${seconds}`;
+            this.timeContainer.appendChild(smallSecondsElement);
         } else {
             // Hide seconds, but blink colon at 1Hz
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = now.getSeconds();
-
-            // Toggle colon visibility every second
-            this.colonVisible = (seconds % 2 === 0);
+            const secondsNum = now.getSeconds();
+            this.colonVisible = (secondsNum % 2 === 0);
             const separator = this.colonVisible ? ':' : ' ';
-
-            timeString = `${hours}${separator}${minutes}`;
+            this.clockElement.textContent = `${hours}${separator}${minutes}`;
         }
 
         // Weekday and date display
@@ -634,8 +670,6 @@ export class DSEGClock {
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const year = now.getFullYear();
         const dateString = `${day}.${month}.${year}`;
-
-        this.clockElement.textContent = timeString;
 
         // Show weekday and date on one line if weekday is shown, otherwise just date
         if (weekdayMode === 'show') {
@@ -657,7 +691,7 @@ export class DSEGClock {
             // Stevenage, UK coordinates
             const latitude = 51.90;
             const longitude = -0.20;
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&temperature_unit=celsius`;
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&daily=temperature_2m_max,temperature_2m_min&timezone=Europe/London&temperature_unit=celsius`;
 
             const response = await fetch(url);
             if (!response.ok) {
@@ -665,14 +699,24 @@ export class DSEGClock {
             }
 
             const data = await response.json();
+
+            // Get current temperature
             const temp = Math.round(data.current.temperature_2m);
             this.currentTemperature = temp.toString();
+
+            // Get today's high and low temperatures (index 0 is today)
+            const tempHigh = Math.round(data.daily.temperature_2m_max[0]);
+            const tempLow = Math.round(data.daily.temperature_2m_min[0]);
+            this.currentTempHigh = tempHigh.toString();
+            this.currentTempLow = tempLow.toString();
 
             // Update display immediately if temperature is shown
             this.updateTemperatureDisplay();
         } catch (error) {
             console.error('[DSEGClock] Error fetching temperature:', error);
             this.currentTemperature = '--';
+            this.currentTempHigh = '--';
+            this.currentTempLow = '--';
             this.updateTemperatureDisplay();
         }
     }
@@ -681,7 +725,7 @@ export class DSEGClock {
         const temperatureMode = this.temperatureDisplayModes[this.currentTemperatureDisplay].value;
 
         if (temperatureMode === 'show') {
-            this.temperatureElement.textContent = `${this.currentTemperature}°`;
+            this.temperatureElement.textContent = `TEMP ${this.currentTemperature}° H ${this.currentTempHigh}° L ${this.currentTempLow}°`;
             this.temperatureElement.style.display = 'block';
         } else {
             this.temperatureElement.textContent = '';
