@@ -13,15 +13,16 @@ export class AnalogClock {
         this.animationTicker = null;
         this.resizeHandler = null;
 
-        // Available colors - U1 original is white, GREEN variations for other colors
+        // Available colors - Same as other clocks (standard RGB)
         this.colors = [
-            { name: 'Original U1', value: 0xFFFFFF }, // White
-            { name: 'Green', value: 0x00FF00 },        // Full green
-            { name: 'Dark Green', value: 0x008800 },   // Red -> darker green
-            { name: 'Blue Green', value: 0x0088FF },   // Blue -> blue-green
-            { name: 'Yellow Green', value: 0x88FF00 }, // Yellow -> yellow-green
-            { name: 'Purple Green', value: 0x8800FF }, // Magenta -> purple-green
-            { name: 'Cyan Green', value: 0x00FFFF }    // Cyan -> cyan-green
+            { name: 'Original U1', value: 0xFFFFFF }, // White (with red accents)
+            { name: 'Green', value: 0x00FF00 },
+            { name: 'Red', value: 0xFF0000 },
+            { name: 'Blue', value: 0x0000FF },
+            { name: 'Yellow', value: 0xFFFF00 },
+            { name: 'Magenta', value: 0xFF00FF },
+            { name: 'Cyan', value: 0x00FFFF },
+            { name: 'White', value: 0xFFFFFF }
         ];
 
         // Parameters
