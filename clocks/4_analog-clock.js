@@ -1,4 +1,4 @@
-export class AviationClock {
+export class AnalogClock2 {
     constructor() {
         this.app = null;
         this.watch = null;
@@ -13,7 +13,7 @@ export class AviationClock {
         this.animationTicker = null;
         this.resizeHandler = null;
 
-        // Available colors - Same as clock 2 (Digital Clock)
+        // Available colors
         this.colors = [
             { name: 'Green', value: 0x00FF00 },
             { name: 'Red', value: 0xFF0000 },
@@ -27,19 +27,35 @@ export class AviationClock {
         // Available seconds hand modes
         this.secondsHandModes = [
             { name: '1Hz', value: '1hz' },
-            { name: 'Continuous 60Hz', value: '60hz' },
+            { name: '60HZ', value: '60hz' },
             { name: 'None', value: 'none' }
         ];
 
+        // Available hour tick marks modes
+        this.hourTicksModes = [
+            { name: 'None', value: 'none' },
+            { name: 'Small', value: 'small' },
+            { name: 'Large', value: 'large' }
+        ];
+
+        // Available date display modes
+        this.dateModes = [
+            { name: 'OFF', value: 'off' },
+            { name: 'DAY', value: 'day' },
+            { name: 'WEEKDAY+DAY', value: 'weekday_day' }
+        ];
+
         // Parameters
-        this.parameters = ['CLOCK MODEL', 'SIZE', 'COLOR', 'SECONDS HAND'];
+        this.parameters = ['CLOCK MODEL', 'SIZE', 'COLOR', 'SECONDS HAND', 'HOUR TICKS', 'DATE'];
         this.currentParameterIndex = 0;
 
         // Current settings - Default to Green (index 0)
         this.baseSizeMultiplier = 1.0;
         this.currentSizeMultiplier = 1.0;
-        this.currentColor = 0; // Green default for aviation
+        this.currentColor = 0; // Green default
         this.currentSecondsHandMode = 0; // 1Hz default
+        this.currentHourTicksMode = 0; // None default
+        this.currentDateMode = 1; // DAY default
 
         // Parameter display element
         this.parameterDisplay = null;
@@ -56,15 +72,15 @@ export class AviationClock {
     async init(container, savedSettings = null) {
         this.container = container;
 
-        console.log('[AviationClock] init() called with savedSettings:', savedSettings);
+        console.log('[AnalogClock2] init() called with savedSettings:', savedSettings);
 
         // Load saved settings if available
         if (savedSettings) {
-            console.log('[AviationClock] Calling loadSettings() with:', savedSettings);
+            console.log('[AnalogClock2] Calling loadSettings() with:', savedSettings);
             this.loadSettings(savedSettings);
-            console.log('[AviationClock] After loadSettings() - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor, 'currentSecondsHandMode:', this.currentSecondsHandMode);
+            console.log('[AnalogClock2] After loadSettings() - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor, 'currentSecondsHandMode:', this.currentSecondsHandMode, 'currentHourTicksMode:', this.currentHourTicksMode, 'currentDateMode:', this.currentDateMode);
         } else {
-            console.log('[AviationClock] No saved settings, using defaults');
+            console.log('[AnalogClock2] No saved settings, using defaults');
         }
 
         this.app = new PIXI.Application();
@@ -92,30 +108,40 @@ export class AviationClock {
         const settings = {
             currentSizeMultiplier: this.currentSizeMultiplier,
             currentColor: this.currentColor,
-            currentSecondsHandMode: this.currentSecondsHandMode
+            currentSecondsHandMode: this.currentSecondsHandMode,
+            currentHourTicksMode: this.currentHourTicksMode,
+            currentDateMode: this.currentDateMode
         };
-        console.log('[AviationClock] getSettings() returning:', settings);
+        console.log('[AnalogClock2] getSettings() returning:', settings);
         return settings;
     }
 
     // Load settings from saved data
     loadSettings(settings) {
-        console.log('[AviationClock] loadSettings() called with:', settings);
+        console.log('[AnalogClock2] loadSettings() called with:', settings);
 
         if (settings.currentSizeMultiplier !== undefined && settings.currentSizeMultiplier >= 0.2 && settings.currentSizeMultiplier <= 3.0) {
-            console.log('[AviationClock] Setting currentSizeMultiplier to:', settings.currentSizeMultiplier);
+            console.log('[AnalogClock2] Setting currentSizeMultiplier to:', settings.currentSizeMultiplier);
             this.currentSizeMultiplier = settings.currentSizeMultiplier;
         }
         if (settings.currentColor !== undefined && settings.currentColor >= 0 && settings.currentColor < this.colors.length) {
-            console.log('[AviationClock] Setting currentColor to:', settings.currentColor);
+            console.log('[AnalogClock2] Setting currentColor to:', settings.currentColor);
             this.currentColor = settings.currentColor;
         }
         if (settings.currentSecondsHandMode !== undefined && settings.currentSecondsHandMode >= 0 && settings.currentSecondsHandMode < this.secondsHandModes.length) {
-            console.log('[AviationClock] Setting currentSecondsHandMode to:', settings.currentSecondsHandMode);
+            console.log('[AnalogClock2] Setting currentSecondsHandMode to:', settings.currentSecondsHandMode);
             this.currentSecondsHandMode = settings.currentSecondsHandMode;
         }
+        if (settings.currentHourTicksMode !== undefined && settings.currentHourTicksMode >= 0 && settings.currentHourTicksMode < this.hourTicksModes.length) {
+            console.log('[AnalogClock2] Setting currentHourTicksMode to:', settings.currentHourTicksMode);
+            this.currentHourTicksMode = settings.currentHourTicksMode;
+        }
+        if (settings.currentDateMode !== undefined && settings.currentDateMode >= 0 && settings.currentDateMode < this.dateModes.length) {
+            console.log('[AnalogClock2] Setting currentDateMode to:', settings.currentDateMode);
+            this.currentDateMode = settings.currentDateMode;
+        }
 
-        console.log('[AviationClock] loadSettings() complete. Final values - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor, 'currentSecondsHandMode:', this.currentSecondsHandMode);
+        console.log('[AnalogClock2] loadSettings() complete. Final values - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor, 'currentSecondsHandMode:', this.currentSecondsHandMode, 'currentHourTicksMode:', this.currentHourTicksMode, 'currentDateMode:', this.currentDateMode);
     }
 
     // Save current settings
@@ -129,10 +155,10 @@ export class AviationClock {
         const secondsHandMode = this.secondsHandModes[this.currentSecondsHandMode].value;
         if (secondsHandMode === '60hz') {
             this.app.ticker.maxFPS = 60;
-            console.log('Aviation Clock: Set to 60 FPS for smooth 60Hz second hand');
+            console.log('Analog Clock 2: Set to 60 FPS for smooth 60Hz second hand');
         } else {
             this.app.ticker.maxFPS = 8;
-            console.log('Aviation Clock: Set to 8 FPS for standard mode');
+            console.log('Analog Clock 2: Set to 8 FPS for standard mode');
         }
     }
 
@@ -140,7 +166,7 @@ export class AviationClock {
         this.clockX = 0.5 * this.app.screen.width;
         this.clockY = 0.5 * this.app.screen.height;
         this.ro = Math.min(this.app.screen.width, this.app.screen.height) * 0.49 * this.currentSizeMultiplier;
-        this.borderLineWidth = 0.001 * this.ro; // Thinner borders for aviation style
+        this.borderLineWidth = 0.001 * this.ro; // Thinner borders
         this.color = this.colors[this.currentColor].value;
 
         if (this.watch) {
@@ -164,18 +190,92 @@ export class AviationClock {
     }
 
     buildWatchFace() {
-        // Date Text at 3 o'clock position - increased size by 50%
-        const dayTextStyle = new PIXI.TextStyle({
-            fill: this.color,
-            fontFamily: '"Courier New", Courier, monospace',
-            fontSize: 0.15 * this.ro, // Increased from 0.1 to 0.15 (50% larger)
-            fontWeight: "bold"
-        });
+        // Build hour tick marks if enabled
+        const hourTicksMode = this.hourTicksModes[this.currentHourTicksMode].value;
+        if (hourTicksMode === 'small') {
+            this.buildSmallHourTicks();
+        } else if (hourTicksMode === 'large') {
+            this.buildLargeTickMarks();
+        }
 
-        this.dayText = new PIXI.Text('--', dayTextStyle);
-        this.dayText.x = this.clockX + 0.5 * this.ro;
-        this.dayText.y = this.clockY - 0.5 * 0.15 * this.ro; // Adjusted for new size
-        this.watch.addChild(this.dayText);
+        // Date Text at 3 o'clock position
+        const dateMode = this.dateModes[this.currentDateMode].value;
+        if (dateMode !== 'off') {
+            const dayTextStyle = new PIXI.TextStyle({
+                fill: this.color,
+                fontFamily: '"Courier New", Courier, monospace',
+                fontSize: 0.15 * this.ro,
+                fontWeight: "bold"
+            });
+
+            this.dayText = new PIXI.Text('--', dayTextStyle);
+            this.dayText.x = this.clockX + 0.5 * this.ro;
+            this.dayText.y = this.clockY - 0.5 * 0.15 * this.ro;
+            this.watch.addChild(this.dayText);
+        } else {
+            this.dayText = null;
+        }
+    }
+
+    buildSmallHourTicks() {
+        // Draw 12 hour tick marks (small size)
+        for (let i = 0; i < 12; i++) {
+            const angle = (i * 30) * Math.PI / 180;
+            const tickLength = 0.06 * this.ro; // Small tick length
+            const tickWidth = 0.008 * this.ro; // Thin tick width
+
+            const x1 = this.clockX + Math.sin(angle) * (this.ro - tickLength);
+            const y1 = this.clockY - Math.cos(angle) * (this.ro - tickLength);
+            const x2 = this.clockX + Math.sin(angle) * this.ro;
+            const y2 = this.clockY - Math.cos(angle) * this.ro;
+
+            const tick = new PIXI.Graphics();
+            tick.moveTo(x1, y1);
+            tick.lineTo(x2, y2);
+            tick.stroke({ width: tickWidth, color: this.color });
+            this.watch.addChild(tick);
+        }
+    }
+
+    buildLargeTickMarks() {
+        // Draw 12 large hour tick marks
+        for (let i = 0; i < 12; i++) {
+            const angle = (i * 30) * Math.PI / 180;
+            const tickLength = 0.1 * this.ro; // Larger tick length for hour marks
+            const tickWidth = 0.015 * this.ro; // Thicker tick width for hour marks
+
+            const x1 = this.clockX + Math.sin(angle) * (this.ro - tickLength);
+            const y1 = this.clockY - Math.cos(angle) * (this.ro - tickLength);
+            const x2 = this.clockX + Math.sin(angle) * this.ro;
+            const y2 = this.clockY - Math.cos(angle) * this.ro;
+
+            const tick = new PIXI.Graphics();
+            tick.moveTo(x1, y1);
+            tick.lineTo(x2, y2);
+            tick.stroke({ width: tickWidth, color: this.color });
+            this.watch.addChild(tick);
+        }
+
+        // Draw 48 smaller minute tick marks (between hour marks)
+        for (let i = 0; i < 60; i++) {
+            // Skip positions where hour marks are
+            if (i % 5 !== 0) {
+                const angle = (i * 6) * Math.PI / 180;
+                const tickLength = 0.04 * this.ro; // Smaller tick length for minute marks
+                const tickWidth = 0.005 * this.ro; // Thin tick width for minute marks
+
+                const x1 = this.clockX + Math.sin(angle) * (this.ro - tickLength);
+                const y1 = this.clockY - Math.cos(angle) * (this.ro - tickLength);
+                const x2 = this.clockX + Math.sin(angle) * this.ro;
+                const y2 = this.clockY - Math.cos(angle) * this.ro;
+
+                const tick = new PIXI.Graphics();
+                tick.moveTo(x1, y1);
+                tick.lineTo(x2, y2);
+                tick.stroke({ width: tickWidth, color: this.color });
+                this.watch.addChild(tick);
+            }
+        }
     }
 
     buildHands() {
@@ -196,9 +296,9 @@ export class AviationClock {
     }
 
     buildHourHand() {
-        // Very slim hour hand for aviation style
-        const w = 0.025 * this.ro; // Much thinner
-        const h = 0.5 * this.ro;   // Shorter than original
+        // Slim hour hand
+        const w = 0.025 * this.ro;
+        const h = 0.5 * this.ro;
         const darkerColor = this.getDarkerColor(this.color);
 
         this.hourHand.clear();
@@ -216,9 +316,9 @@ export class AviationClock {
     }
 
     buildMinuteHand() {
-        // Very slim minute hand for aviation style
-        const w = 0.02 * this.ro;  // Even thinner
-        const h = 0.75 * this.ro;  // Longer than hour hand
+        // Slim minute hand
+        const w = 0.02 * this.ro;
+        const h = 0.75 * this.ro;
         const darkerColor = this.getDarkerColor(this.color);
 
         this.minuteHand.clear();
@@ -242,9 +342,9 @@ export class AviationClock {
 
         // Only draw second hand if not in 'none' mode
         if (this.secondsHandModes[this.currentSecondsHandMode].value !== 'none') {
-            // Ultra-slim second hand for aviation style
-            const w = 0.008 * this.ro; // Ultra thin
-            const h = 0.8 * this.ro;   // Long and thin
+            // Ultra-slim second hand
+            const w = 0.008 * this.ro;
+            const h = 0.8 * this.ro;
             const darkerColor = this.getDarkerColor(this.color);
 
             this.secondHand.beginFill(darkerColor);
@@ -275,7 +375,17 @@ export class AviationClock {
         this.animationTicker = (delta) => {
             const t = new Date();
 
-            this.dayText.text = t.getDate();
+            // Update date text based on mode
+            const dateMode = this.dateModes[this.currentDateMode].value;
+            if (this.dayText) {
+                if (dateMode === 'day') {
+                    this.dayText.text = t.getDate();
+                } else if (dateMode === 'weekday_day') {
+                    const weekdayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+                    const weekday = weekdayNames[t.getDay()];
+                    this.dayText.text = `${weekday}\n${t.getDate()}`;
+                }
+            }
 
             // Handle different second hand modes
             const secondsHandMode = this.secondsHandModes[this.currentSecondsHandMode].value;
@@ -283,7 +393,7 @@ export class AviationClock {
                 // 1Hz second hand updates - discrete jumps
                 this.secondHand.rotation = (t.getSeconds()) / 60 * 2 * Math.PI;
             } else if (secondsHandMode === '60hz') {
-                // Continuous 60Hz second hand - smooth movement
+                // 60Hz second hand - smooth movement
                 this.secondHand.rotation = (t.getSeconds() + t.getMilliseconds() / 1000) / 60 * 2 * Math.PI;
             }
             // For 'none' mode, we don't update rotation (hand is invisible anyway)
@@ -298,11 +408,11 @@ export class AviationClock {
 
     createParameterDisplay() {
         // Create CSS styles for parameter display
-        if (!document.getElementById('aviation-clock-styles')) {
+        if (!document.getElementById('analog2-clock-styles')) {
             const style = document.createElement('style');
-            style.id = 'aviation-clock-styles';
+            style.id = 'analog2-clock-styles';
             style.textContent = `
-                .aviation-parameter-display {
+                .analog2-parameter-display {
                     position: fixed;
                     top: 0;
                     left: 0;
@@ -316,36 +426,36 @@ export class AviationClock {
                     max-width: 90vw;
                     overflow-x: auto;
                 }
-                .aviation-parameter-row {
+                .analog2-parameter-row {
                     margin: 0;
                     padding: 0;
                     white-space: nowrap;
                 }
-                .aviation-parameter-row.active .aviation-parameter-name {
+                .analog2-parameter-row.active .analog2-parameter-name {
                     background: #00ff00;
                     color: #000000;
                 }
-                .aviation-parameter-row.active .aviation-parameter-option.selected {
+                .analog2-parameter-row.active .analog2-parameter-option.selected {
                     background: #00ff00;
                     color: #000000;
                     font-weight: bold;
                 }
-                .aviation-parameter-name {
+                .analog2-parameter-name {
                     display: inline;
                     color: #00ff00;
                 }
-                .aviation-parameter-options {
+                .analog2-parameter-options {
                     display: inline;
                     color: #888888;
                 }
-                .aviation-parameter-option {
+                .analog2-parameter-option {
                     display: inline;
                 }
-                .aviation-parameter-option.selected {
+                .analog2-parameter-option.selected {
                     font-weight: bold;
                     color: #00ff00;
                 }
-                .aviation-parameter-separator {
+                .analog2-parameter-separator {
                     color: #444444;
                 }
             `;
@@ -353,7 +463,7 @@ export class AviationClock {
         }
 
         this.parameterDisplay = document.createElement('div');
-        this.parameterDisplay.className = 'aviation-parameter-display';
+        this.parameterDisplay.className = 'analog2-parameter-display';
         this.updateParameterDisplay();
         this.container.appendChild(this.parameterDisplay);
     }
@@ -368,10 +478,10 @@ export class AviationClock {
             const optionsHtml = allOptions.map((option, optionIndex) => {
                 const isSelected = optionIndex === currentSelection;
                 const selectedClass = isSelected ? ' selected' : '';
-                const separator = optionIndex < allOptions.length - 1 ? '<span class="aviation-parameter-separator"> </span>' : '';
-                return `<span class="aviation-parameter-option${selectedClass}">${option}</span>${separator}`;
+                const separator = optionIndex < allOptions.length - 1 ? '<span class="analog2-parameter-separator"> </span>' : '';
+                return `<span class="analog2-parameter-option${selectedClass}">${option}</span>${separator}`;
             }).join('');
-            html += `<div class="aviation-parameter-row${activeClass}"><span class="aviation-parameter-name">${paramName}: </span><span class="aviation-parameter-options">${optionsHtml}</span></div>`;
+            html += `<div class="analog2-parameter-row${activeClass}"><span class="analog2-parameter-name">${paramName}: </span><span class="analog2-parameter-options">${optionsHtml}</span></div>`;
         });
         this.parameterDisplay.innerHTML = html;
         this.parameterDisplay.style.display = 'block';
@@ -385,7 +495,7 @@ export class AviationClock {
         switch (paramName) {
             case 'CLOCK MODEL':
                 if (this.multiClockInstance && this.multiClockInstance.clocks) return this.multiClockInstance.clocks.map(c => c.name);
-                return ['Analog', 'Digital', '7-Segment LED', 'Slim Analog', 'DSEG'];
+                return ['Analog', 'Digital', '7-Segment LED', 'Analog', 'DSEG'];
             case 'SIZE':
                 const sizeOptions = [];
                 for (let pct = 20; pct <= 300; pct += 10) sizeOptions.push(pct + '%');
@@ -394,6 +504,10 @@ export class AviationClock {
                 return this.colors.map(c => c.name);
             case 'SECONDS HAND':
                 return this.secondsHandModes.map(m => m.name);
+            case 'HOUR TICKS':
+                return this.hourTicksModes.map(m => m.name);
+            case 'DATE':
+                return this.dateModes.map(m => m.name);
             default:
                 return [];
         }
@@ -412,6 +526,10 @@ export class AviationClock {
                 return this.currentColor;
             case 'SECONDS HAND':
                 return this.currentSecondsHandMode;
+            case 'HOUR TICKS':
+                return this.currentHourTicksMode;
+            case 'DATE':
+                return this.currentDateMode;
             default:
                 return 0;
         }
@@ -431,7 +549,7 @@ export class AviationClock {
     changeParameterLeft() {
         const parameter = this.parameters[this.currentParameterIndex];
 
-        console.log('[AviationClock] changeParameterLeft() - parameter:', parameter);
+        console.log('[AnalogClock2] changeParameterLeft() - parameter:', parameter);
 
         switch (parameter) {
             case 'CLOCK MODEL':
@@ -443,23 +561,33 @@ export class AviationClock {
                 return;
             case 'SIZE':
                 this.currentSizeMultiplier = Math.max(0.2, this.currentSizeMultiplier / 1.2);
-                console.log('[AviationClock] Changed size to:', this.currentSizeMultiplier);
+                console.log('[AnalogClock2] Changed size to:', this.currentSizeMultiplier);
                 this.buildClock();
                 break;
             case 'COLOR':
                 this.currentColor = (this.currentColor - 1 + this.colors.length) % this.colors.length;
-                console.log('[AviationClock] Changed color to:', this.currentColor);
+                console.log('[AnalogClock2] Changed color to:', this.currentColor);
                 this.buildClock();
                 break;
             case 'SECONDS HAND':
                 this.currentSecondsHandMode = (this.currentSecondsHandMode - 1 + this.secondsHandModes.length) % this.secondsHandModes.length;
-                console.log('[AviationClock] Changed seconds hand mode to:', this.currentSecondsHandMode);
+                console.log('[AnalogClock2] Changed seconds hand mode to:', this.currentSecondsHandMode);
                 this.updateFPS();
+                this.buildClock();
+                break;
+            case 'HOUR TICKS':
+                this.currentHourTicksMode = (this.currentHourTicksMode - 1 + this.hourTicksModes.length) % this.hourTicksModes.length;
+                console.log('[AnalogClock2] Changed hour ticks mode to:', this.currentHourTicksMode);
+                this.buildClock();
+                break;
+            case 'DATE':
+                this.currentDateMode = (this.currentDateMode - 1 + this.dateModes.length) % this.dateModes.length;
+                console.log('[AnalogClock2] Changed date mode to:', this.currentDateMode);
                 this.buildClock();
                 break;
         }
 
-        console.log('[AviationClock] Calling saveSettings()');
+        console.log('[AnalogClock2] Calling saveSettings()');
         this.saveSettings();
         this.showSelectedValue();
     }
@@ -488,6 +616,14 @@ export class AviationClock {
                 this.updateFPS();
                 this.buildClock();
                 break;
+            case 'HOUR TICKS':
+                this.currentHourTicksMode = (this.currentHourTicksMode + 1) % this.hourTicksModes.length;
+                this.buildClock();
+                break;
+            case 'DATE':
+                this.currentDateMode = (this.currentDateMode + 1) % this.dateModes.length;
+                this.buildClock();
+                break;
         }
 
         this.saveSettings();
@@ -512,7 +648,7 @@ export class AviationClock {
         }
 
         // Clean up styles
-        const styleElement = document.getElementById('aviation-clock-styles');
+        const styleElement = document.getElementById('analog2-clock-styles');
         if (styleElement) {
             styleElement.parentNode.removeChild(styleElement);
         }

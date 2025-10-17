@@ -58,7 +58,7 @@
 1: Analog Clock
 2: Digital Clock
 3: 7-Segment LED
-4: Slim Analog
+4: Analog Clock
 5: DSEG Clock
 ↑↓: Navigate parameters
 ←→: Change values
@@ -71,13 +71,13 @@ H: Show this help</div>
         const AnalogClockModule = await import(`./clocks/1_analog-clock.js?v=${cacheBuster}`);
         const DigitalClockModule = await import(`./clocks/2_digital-clock.js?v=${cacheBuster}`);
         const SevenSegmentLedClockModule = await import(`./clocks/3_7segment-led.js?v=${cacheBuster}`);
-        const AviationClockModule = await import(`./clocks/4_aviation-clock.js?v=${cacheBuster}`);
+        const AnalogClock2Module = await import(`./clocks/4_analog-clock.js?v=${cacheBuster}`);
         const DSEGClockModule = await import(`./clocks/5_dseg-clock.js?v=${cacheBuster}`);
 
         const { AnalogClock } = AnalogClockModule;
         const { DigitalClock } = DigitalClockModule;
         const { SevenSegmentLedClock } = SevenSegmentLedClockModule;
-        const { AviationClock } = AviationClockModule;
+        const { AnalogClock2 } = AnalogClock2Module;
         const { DSEGClock } = DSEGClockModule;
 
         // Settings Manager for persisting user preferences
@@ -139,7 +139,7 @@ H: Show this help</div>
                     { name: 'Analog', class: AnalogClock },
                     { name: 'Digital', class: DigitalClock },
                     { name: '7-Segment LED', class: SevenSegmentLedClock },
-                    { name: 'Slim Analog', class: AviationClock },
+                    { name: 'Analog', class: AnalogClock2 },
                     { name: 'DSEG', class: DSEGClock }
                 ];
                 this.currentClockIndex = 0;
