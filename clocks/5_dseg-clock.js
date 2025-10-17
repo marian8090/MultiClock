@@ -725,7 +725,8 @@ export class DSEGClock {
         const temperatureMode = this.temperatureDisplayModes[this.currentTemperatureDisplay].value;
 
         if (temperatureMode === 'show') {
-            this.temperatureElement.textContent = `TEMP ${this.currentTemperature}° H ${this.currentTempHigh}° L ${this.currentTempLow}°`;
+            // Using Unicode non-breaking spaces (U+00A0) for better spacing visibility
+            this.temperatureElement.textContent = `${this.currentTemperature}°\u00A0\u00A0\u00A0${this.currentTempHigh}°/${this.currentTempLow}°`;
             this.temperatureElement.style.display = 'block';
         } else {
             this.temperatureElement.textContent = '';
