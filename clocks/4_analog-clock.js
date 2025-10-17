@@ -55,13 +55,18 @@ export class AnalogClock2 {
             { name: '5x', value: 5.0 }
         ];
 
+        // Available size multipliers (20% to 300% in 10% increments)
+        this.sizeMultipliers = [];
+        for (let pct = 20; pct <= 300; pct += 10) {
+            this.sizeMultipliers.push(pct / 100);
+        }
+
         // Parameters
         this.parameters = ['CLOCK MODEL', 'SIZE', 'COLOR', 'SECONDS HAND', 'TICKS', 'DATE', 'WIDTH'];
         this.currentParameterIndex = 0;
 
         // Current settings - Default to Green (index 0)
-        this.baseSizeMultiplier = 1.0;
-        this.currentSizeMultiplier = 1.0;
+        this.currentSizeIndex = 8; // 100% (index 8: 20,30,40,50,60,70,80,90,100)
         this.currentColor = 0; // Green default
         this.currentSecondsHandMode = 0; // 1Hz default
         this.currentHourTicksMode = 0; // None default
@@ -89,7 +94,7 @@ export class AnalogClock2 {
         if (savedSettings) {
             console.log('[AnalogClock2] Calling loadSettings() with:', savedSettings);
             this.loadSettings(savedSettings);
-            console.log('[AnalogClock2] After loadSettings() - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor, 'currentSecondsHandMode:', this.currentSecondsHandMode, 'currentHourTicksMode:', this.currentHourTicksMode, 'currentDateMode:', this.currentDateMode);
+            console.log('[AnalogClock2] After loadSettings() - currentSizeIndex:', this.currentSizeIndex, 'currentColor:', this.currentColor, 'currentSecondsHandMode:', this.currentSecondsHandMode, 'currentHourTicksMode:', this.currentHourTicksMode, 'currentDateMode:', this.currentDateMode);
         } else {
             console.log('[AnalogClock2] No saved settings, using defaults');
         }
@@ -117,7 +122,7 @@ export class AnalogClock2 {
     // Get current settings for persistence
     getSettings() {
         const settings = {
-            currentSizeMultiplier: this.currentSizeMultiplier,
+            currentSizeIndex: this.currentSizeIndex,
             currentColor: this.currentColor,
             currentSecondsHandMode: this.currentSecondsHandMode,
             currentHourTicksMode: this.currentHourTicksMode,
@@ -132,9 +137,9 @@ export class AnalogClock2 {
     loadSettings(settings) {
         console.log('[AnalogClock2] loadSettings() called with:', settings);
 
-        if (settings.currentSizeMultiplier !== undefined && settings.currentSizeMultiplier >= 0.2 && settings.currentSizeMultiplier <= 3.0) {
-            console.log('[AnalogClock2] Setting currentSizeMultiplier to:', settings.currentSizeMultiplier);
-            this.currentSizeMultiplier = settings.currentSizeMultiplier;
+        if (settings.currentSizeIndex !== undefined && settings.currentSizeIndex >= 0 && settings.currentSizeIndex < this.sizeMultipliers.length) {
+            console.log('[AnalogClock2] Setting currentSizeIndex to:', settings.currentSizeIndex);
+            this.currentSizeIndex = settings.currentSizeIndex;
         }
         if (settings.currentColor !== undefined && settings.currentColor >= 0 && settings.currentColor < this.colors.length) {
             console.log('[AnalogClock2] Setting currentColor to:', settings.currentColor);
@@ -157,7 +162,7 @@ export class AnalogClock2 {
             this.currentWidthMultiplier = settings.currentWidthMultiplier;
         }
 
-        console.log('[AnalogClock2] loadSettings() complete. Final values - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor, 'currentSecondsHandMode:', this.currentSecondsHandMode, 'currentHourTicksMode:', this.currentHourTicksMode, 'currentDateMode:', this.currentDateMode, 'currentWidthMultiplier:', this.currentWidthMultiplier);
+        console.log('[AnalogClock2] loadSettings() complete. Final values - currentSizeIndex:', this.currentSizeIndex, 'currentColor:', this.currentColor, 'currentSecondsHandMode:', this.currentSecondsHandMode, 'currentHourTicksMode:', this.currentHourTicksMode, 'currentDateMode:', this.currentDateMode, 'currentWidthMultiplier:', this.currentWidthMultiplier);
     }
 
     // Save current settings
@@ -181,7 +186,7 @@ export class AnalogClock2 {
     buildClock() {
         this.clockX = 0.5 * this.app.screen.width;
         this.clockY = 0.5 * this.app.screen.height;
-        this.ro = Math.min(this.app.screen.width, this.app.screen.height) * 0.49 * this.currentSizeMultiplier;
+        this.ro = Math.min(this.app.screen.width, this.app.screen.height) * 0.49 * this.sizeMultipliers[this.currentSizeIndex];
         this.borderLineWidth = 0.001 * this.ro; // Thinner borders
         this.color = this.colors[this.currentColor].value;
 
@@ -226,7 +231,7 @@ export class AnalogClock2 {
 
             this.dayText = new PIXI.Text('--', dayTextStyle);
             this.dayText.anchor.set(1, 0.5); // Right-align text
-            this.dayText.x = this.clockX + 0.65 * this.ro; // Position within inner circle (closer to center)
+            this.dayText.x = this.clockX + 0.94 * this.ro; // Position just left of tick marks
             this.dayText.y = this.clockY;
             this.watch.addChild(this.dayText);
         } else {
@@ -557,9 +562,7 @@ export class AnalogClock2 {
                 if (this.multiClockInstance) return this.multiClockInstance.currentClockIndex;
                 return this.clockIndex || 0;
             case 'SIZE':
-                const currentPct = Math.round(this.currentSizeMultiplier * 100);
-                const sizeIndex = Math.round((currentPct - 20) / 10);
-                return Math.max(0, Math.min(28, sizeIndex));
+                return this.currentSizeIndex;
             case 'COLOR':
                 return this.currentColor;
             case 'SECONDS HAND':
@@ -600,8 +603,8 @@ export class AnalogClock2 {
                 }
                 return;
             case 'SIZE':
-                this.currentSizeMultiplier = Math.max(0.2, this.currentSizeMultiplier / 1.2);
-                console.log('[AnalogClock2] Changed size to:', this.currentSizeMultiplier);
+                this.currentSizeIndex = (this.currentSizeIndex - 1 + this.sizeMultipliers.length) % this.sizeMultipliers.length;
+                console.log('[AnalogClock2] Changed size to:', this.sizeMultipliers[this.currentSizeIndex]);
                 this.buildClock();
                 break;
             case 'COLOR':
@@ -649,7 +652,7 @@ export class AnalogClock2 {
                 }
                 return;
             case 'SIZE':
-                this.currentSizeMultiplier = Math.min(3.0, this.currentSizeMultiplier * 1.2);
+                this.currentSizeIndex = (this.currentSizeIndex + 1) % this.sizeMultipliers.length;
                 this.buildClock();
                 break;
             case 'COLOR':

@@ -25,13 +25,18 @@ export class AnalogClock {
             { name: 'White', value: 0xFFFFFF }
         ];
 
+        // Available size multipliers (20% to 300% in 10% increments)
+        this.sizeMultipliers = [];
+        for (let pct = 20; pct <= 300; pct += 10) {
+            this.sizeMultipliers.push(pct / 100);
+        }
+
         // Parameters
         this.parameters = ['CLOCK MODEL', 'SIZE', 'COLOR'];
         this.currentParameterIndex = 0;
 
         // Current settings
-        this.baseSizeMultiplier = 1.0;
-        this.currentSizeMultiplier = 1.0;
+        this.currentSizeIndex = 8; // 100% (index 8: 20,30,40,50,60,70,80,90,100)
         this.currentColor = 0; // Original U1 (white)
 
         // Parameter display element
@@ -55,7 +60,7 @@ export class AnalogClock {
         if (savedSettings) {
             console.log('[AnalogClock] Calling loadSettings() with:', savedSettings);
             this.loadSettings(savedSettings);
-            console.log('[AnalogClock] After loadSettings() - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor);
+            console.log('[AnalogClock] After loadSettings() - currentSizeIndex:', this.currentSizeIndex, 'currentColor:', this.currentColor);
         } else {
             console.log('[AnalogClock] No saved settings, using defaults');
         }
@@ -83,7 +88,7 @@ export class AnalogClock {
     // Get current settings for persistence
     getSettings() {
         const settings = {
-            currentSizeMultiplier: this.currentSizeMultiplier,
+            currentSizeIndex: this.currentSizeIndex,
             currentColor: this.currentColor
         };
         console.log('[AnalogClock] getSettings() returning:', settings);
@@ -94,16 +99,16 @@ export class AnalogClock {
     loadSettings(settings) {
         console.log('[AnalogClock] loadSettings() called with:', settings);
 
-        if (settings.currentSizeMultiplier !== undefined && settings.currentSizeMultiplier >= 0.2 && settings.currentSizeMultiplier <= 3.0) {
-            console.log('[AnalogClock] Setting currentSizeMultiplier to:', settings.currentSizeMultiplier);
-            this.currentSizeMultiplier = settings.currentSizeMultiplier;
+        if (settings.currentSizeIndex !== undefined && settings.currentSizeIndex >= 0 && settings.currentSizeIndex < this.sizeMultipliers.length) {
+            console.log('[AnalogClock] Setting currentSizeIndex to:', settings.currentSizeIndex);
+            this.currentSizeIndex = settings.currentSizeIndex;
         }
         if (settings.currentColor !== undefined && settings.currentColor >= 0 && settings.currentColor < this.colors.length) {
             console.log('[AnalogClock] Setting currentColor to:', settings.currentColor);
             this.currentColor = settings.currentColor;
         }
 
-        console.log('[AnalogClock] loadSettings() complete. Final values - currentSizeMultiplier:', this.currentSizeMultiplier, 'currentColor:', this.currentColor);
+        console.log('[AnalogClock] loadSettings() complete. Final values - currentSizeIndex:', this.currentSizeIndex, 'currentColor:', this.currentColor);
     }
 
     // Save current settings
@@ -116,7 +121,7 @@ export class AnalogClock {
     buildClock() {
         this.clockX = 0.5 * this.app.screen.width;
         this.clockY = 0.5 * this.app.screen.height;
-        this.ro = Math.min(this.app.screen.width, this.app.screen.height) * 0.49 * this.currentSizeMultiplier;
+        this.ro = Math.min(this.app.screen.width, this.app.screen.height) * 0.49 * this.sizeMultipliers[this.currentSizeIndex];
         this.borderLineWidth = 0.002 * this.ro;
         this.color = this.colors[this.currentColor].value;
 
@@ -498,10 +503,7 @@ export class AnalogClock {
                 }
                 return this.clockIndex || 0;
             case 'SIZE':
-                // Calculate which size option index matches current multiplier
-                const currentPct = Math.round(this.currentSizeMultiplier * 100);
-                const sizeIndex = Math.round((currentPct - 20) / 10);
-                return Math.max(0, Math.min(28, sizeIndex)); // Clamp to valid range
+                return this.currentSizeIndex;
             case 'COLOR':
                 return this.currentColor;
             default:
@@ -533,7 +535,7 @@ export class AnalogClock {
                 }
                 return; // Don't save settings or show value (clock is switching)
             case 'SIZE':
-                this.currentSizeMultiplier = Math.max(0.2, this.currentSizeMultiplier / 1.2);
+                this.currentSizeIndex = (this.currentSizeIndex - 1 + this.sizeMultipliers.length) % this.sizeMultipliers.length;
                 this.buildClock();
                 break;
             case 'COLOR':
@@ -559,7 +561,7 @@ export class AnalogClock {
                 }
                 return; // Don't save settings or show value (clock is switching)
             case 'SIZE':
-                this.currentSizeMultiplier = Math.min(3.0, this.currentSizeMultiplier * 1.2);
+                this.currentSizeIndex = (this.currentSizeIndex + 1) % this.sizeMultipliers.length;
                 this.buildClock();
                 break;
             case 'COLOR':
