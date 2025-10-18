@@ -73,12 +73,20 @@ export class DSEGClock {
             { name: 'Hide', value: 'hide' }
         ];
 
+        // Available LCD background opacity levels
+        this.lcdBackgroundOpacities = [
+            { name: '5%', value: 0.05 },
+            { name: '10%', value: 0.10 },
+            { name: '15%', value: 0.15 },
+            { name: '20%', value: 0.20 }
+        ];
+
         // Available font sizes (in points, like MS Word) - 36 to 400 with finer steps
         this.timeFontSizes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 320, 340, 360, 380, 400];
         this.dateFontSizes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 320, 340, 360, 380, 400];
 
         // Parameters
-        this.parameters = ['CLOCK MODEL', 'FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY', 'TEMPERATURE'];
+        this.parameters = ['CLOCK MODEL', 'FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY', 'TEMPERATURE', 'LCD BG OPACITY'];
         this.currentParameterIndex = 0;
 
         // Reference to MultiClock instance for clock switching
@@ -94,6 +102,7 @@ export class DSEGClock {
         this.currentSecondsDisplay = 0; // Show by default
         this.currentWeekdayDisplay = 0; // Show by default
         this.currentTemperatureDisplay = 1; // Hide by default
+        this.currentLcdBackgroundOpacity = 2; // 15% by default (index 2 in new array)
 
         // Colon blink state
         this.colonVisible = true;
@@ -139,7 +148,8 @@ export class DSEGClock {
             currentRenderMode: this.currentRenderMode,
             currentSecondsDisplay: this.currentSecondsDisplay,
             currentWeekdayDisplay: this.currentWeekdayDisplay,
-            currentTemperatureDisplay: this.currentTemperatureDisplay
+            currentTemperatureDisplay: this.currentTemperatureDisplay,
+            currentLcdBackgroundOpacity: this.currentLcdBackgroundOpacity
         };
         console.log('[DSEGClock] getSettings() returning:', settings);
         return settings;
@@ -185,8 +195,12 @@ export class DSEGClock {
             console.log('[DSEGClock] Setting currentTemperatureDisplay to:', settings.currentTemperatureDisplay);
             this.currentTemperatureDisplay = settings.currentTemperatureDisplay;
         }
+        if (settings.currentLcdBackgroundOpacity !== undefined && settings.currentLcdBackgroundOpacity >= 0 && settings.currentLcdBackgroundOpacity < this.lcdBackgroundOpacities.length) {
+            console.log('[DSEGClock] Setting currentLcdBackgroundOpacity to:', settings.currentLcdBackgroundOpacity);
+            this.currentLcdBackgroundOpacity = settings.currentLcdBackgroundOpacity;
+        }
 
-        console.log('[DSEGClock] loadSettings() complete. Final values - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentTimeFontSizeIndex:', this.currentTimeFontSizeIndex, 'currentDateFontSizeIndex:', this.currentDateFontSizeIndex, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode, 'currentSecondsDisplay:', this.currentSecondsDisplay, 'currentWeekdayDisplay:', this.currentWeekdayDisplay, 'currentTemperatureDisplay:', this.currentTemperatureDisplay);
+        console.log('[DSEGClock] loadSettings() complete. Final values - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentTimeFontSizeIndex:', this.currentTimeFontSizeIndex, 'currentDateFontSizeIndex:', this.currentDateFontSizeIndex, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode, 'currentSecondsDisplay:', this.currentSecondsDisplay, 'currentWeekdayDisplay:', this.currentWeekdayDisplay, 'currentTemperatureDisplay:', this.currentTemperatureDisplay, 'currentLcdBackgroundOpacity:', this.currentLcdBackgroundOpacity);
     }
 
     // Save current settings
@@ -274,6 +288,8 @@ export class DSEGClock {
                 justify-content: center;
                 align-items: baseline;
                 position: relative;
+                min-width: fit-content;
+                width: 100%;
             }
 
             .dseg-time {
@@ -283,10 +299,11 @@ export class DSEGClock {
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
+                white-space: pre;
             }
 
             .dseg-time-container .dseg-background {
-                opacity: ${this.currentColor === 7 ? '0.15' : '0'};
+                opacity: ${this.currentColor === 7 ? this.lcdBackgroundOpacities[this.currentLcdBackgroundOpacity].value : '0'};
                 position: absolute;
                 top: 0;
                 left: 0;
@@ -297,11 +314,12 @@ export class DSEGClock {
                 align-items: baseline;
                 z-index: 1;
                 pointer-events: none;
+                white-space: pre;
             }
 
             .dseg-weekday-date.dseg-background,
             .dseg-temperature.dseg-background {
-                opacity: ${this.currentColor === 7 ? '0.15' : '0'};
+                opacity: ${this.currentColor === 7 ? this.lcdBackgroundOpacities[this.currentLcdBackgroundOpacity].value : '0'};
                 position: absolute;
                 top: 0;
                 left: 0;
@@ -675,6 +693,8 @@ export class DSEGClock {
                 return this.weekdayDisplayModes.map(w => w.name);
             case 'TEMPERATURE':
                 return this.temperatureDisplayModes.map(t => t.name);
+            case 'LCD BG OPACITY':
+                return this.lcdBackgroundOpacities.map(o => o.name);
             default:
                 return [];
         }
@@ -707,6 +727,8 @@ export class DSEGClock {
                 return this.currentWeekdayDisplay;
             case 'TEMPERATURE':
                 return this.currentTemperatureDisplay;
+            case 'LCD BG OPACITY':
+                return this.currentLcdBackgroundOpacity;
             default:
                 return 0;
         }
@@ -769,6 +791,10 @@ export class DSEGClock {
                 this.currentTemperatureDisplay = (this.currentTemperatureDisplay - 1 + this.temperatureDisplayModes.length) % this.temperatureDisplayModes.length;
                 this.updateTemperatureDisplay();
                 break;
+            case 'LCD BG OPACITY':
+                this.currentLcdBackgroundOpacity = (this.currentLcdBackgroundOpacity - 1 + this.lcdBackgroundOpacities.length) % this.lcdBackgroundOpacities.length;
+                this.updateStyles();
+                break;
         }
 
         this.saveSettings();
@@ -820,6 +846,10 @@ export class DSEGClock {
             case 'TEMPERATURE':
                 this.currentTemperatureDisplay = (this.currentTemperatureDisplay + 1) % this.temperatureDisplayModes.length;
                 this.updateTemperatureDisplay();
+                break;
+            case 'LCD BG OPACITY':
+                this.currentLcdBackgroundOpacity = (this.currentLcdBackgroundOpacity + 1) % this.lcdBackgroundOpacities.length;
+                this.updateStyles();
                 break;
         }
 
