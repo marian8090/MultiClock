@@ -231,7 +231,7 @@ export class AnalogClock2 {
 
             this.dayText = new PIXI.Text('--', dayTextStyle);
             this.dayText.anchor.set(1, 0.5); // Right-align text
-            this.dayText.x = this.clockX + 0.94 * this.ro - 20; // Position 20px left of previous position
+            this.dayText.x = this.clockX + 0.88 * this.ro; // Proportional positioning (was 0.94 * ro - 20px fixed)
             this.dayText.y = this.clockY;
             this.watch.addChild(this.dayText);
         } else {
