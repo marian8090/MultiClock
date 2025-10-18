@@ -3,6 +3,7 @@ export class DSEGClock {
         this.container = null;
         this.clockElement = null;
         this.timeContainer = null;
+        this.backgroundTimeContainer = null;
         this.weekdayDateElement = null;
         this.temperatureElement = null;
         this.backgroundClockElement = null;
@@ -289,12 +290,13 @@ export class DSEGClock {
                 position: absolute;
                 top: 0;
                 left: 0;
-                right: 0;
-                z-index: 1;
-                pointer-events: none;
+                width: 100%;
+                height: 100%;
                 display: flex;
                 justify-content: center;
                 align-items: baseline;
+                z-index: 1;
+                pointer-events: none;
             }
 
             .dseg-weekday-date.dseg-background,
@@ -342,14 +344,6 @@ export class DSEGClock {
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
-            }
-
-            .dseg-time-minus20-seconds.dseg-background,
-            .dseg-time-minus30-seconds.dseg-background,
-            .dseg-time-minus40-seconds.dseg-background,
-            .dseg-time-minus50-seconds.dseg-background {
-                position: absolute;
-                z-index: 1;
             }
 
             .dseg-weekday-date-container,
@@ -543,14 +537,20 @@ export class DSEGClock {
         this.timeContainer = document.createElement('div');
         this.timeContainer.className = 'dseg-time-container';
 
+        // Create background container that mirrors the foreground layout
+        this.backgroundTimeContainer = document.createElement('div');
+        this.backgroundTimeContainer.className = 'dseg-background';
+
         // Create background inactive segments layer (for LCD mode)
         this.backgroundClockElement = document.createElement('span');
-        this.backgroundClockElement.className = 'dseg-time dseg-background';
+        this.backgroundClockElement.className = 'dseg-time';
+
+        this.backgroundTimeContainer.appendChild(this.backgroundClockElement);
 
         this.clockElement = document.createElement('span');
         this.clockElement.className = 'dseg-time';
 
-        this.timeContainer.appendChild(this.backgroundClockElement);
+        this.timeContainer.appendChild(this.backgroundTimeContainer);
         this.timeContainer.appendChild(this.clockElement);
 
         // Create container for weekday/date with background
@@ -843,7 +843,7 @@ export class DSEGClock {
         }
 
         // Remove any existing background percentage-sized seconds element
-        const existingBgPercentSeconds = this.timeContainer.querySelector('.dseg-background[class*="dseg-time-minus"]');
+        const existingBgPercentSeconds = this.backgroundTimeContainer.querySelector('[class*="dseg-time-minus"]');
         if (existingBgPercentSeconds) {
             existingBgPercentSeconds.remove();
         }
@@ -853,7 +853,7 @@ export class DSEGClock {
             this.clockElement.textContent = `${hours}:${minutes}:${seconds}`;
             // Background all-segments-on for LCD mode (88:88:88 shows all segments)
             this.backgroundClockElement.textContent = '88:88:88';
-            this.backgroundClockElement.className = 'dseg-time dseg-background';
+            this.backgroundClockElement.className = 'dseg-time';
         } else if (secondsMode === 'minus20' || secondsMode === 'minus30' || secondsMode === 'minus40' || secondsMode === 'minus50') {
             // Show main time without seconds
             this.clockElement.textContent = `${hours}:${minutes}`;
@@ -866,13 +866,13 @@ export class DSEGClock {
 
             // Background all-segments-on for LCD mode - match the layout with smaller seconds
             this.backgroundClockElement.textContent = '88:88';
-            this.backgroundClockElement.className = 'dseg-time dseg-background';
+            this.backgroundClockElement.className = 'dseg-time';
 
             // Create smaller background seconds to match the reduced font size
             const bgPercentSecondsElement = document.createElement('span');
-            bgPercentSecondsElement.className = `dseg-time-${secondsMode}-seconds dseg-background`;
+            bgPercentSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
             bgPercentSecondsElement.textContent = ':88';
-            this.timeContainer.appendChild(bgPercentSecondsElement);
+            this.backgroundTimeContainer.appendChild(bgPercentSecondsElement);
         } else {
             // Hide seconds, but blink colon at 1Hz
             const secondsNum = now.getSeconds();
@@ -881,7 +881,7 @@ export class DSEGClock {
             this.clockElement.textContent = `${hours}${separator}${minutes}`;
             // Background all-segments-on for LCD mode
             this.backgroundClockElement.textContent = '88:88';
-            this.backgroundClockElement.className = 'dseg-time dseg-background';
+            this.backgroundClockElement.className = 'dseg-time';
         }
 
         // Weekday and date display
