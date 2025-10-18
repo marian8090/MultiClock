@@ -71,7 +71,8 @@ export class DSEGClock {
             { name: '-30%', value: 'minus30' },
             { name: '-40%', value: 'minus40' },
             { name: '-50%', value: 'minus50' },
-            { name: 'Hide', value: 'hide' }
+            { name: 'OFF-Flash-Colon', value: 'hideflashcolon' },
+            { name: 'OFF-Flash-Decimal', value: 'hideflashdecimal' }
         ];
 
         // Available weekday display modes
@@ -1148,12 +1149,25 @@ export class DSEGClock {
             newReducedSecondsText = `:${seconds}`;
             reducedSecondsClass = `dseg-time-${secondsMode}-seconds`;
             showReducedSeconds = true;
-        } else {
-            // Hide seconds, but blink colon at 1Hz
-            const secondsNum = now.getSeconds();
-            this.colonVisible = (secondsNum % 2 === 0);
+        } else if (secondsMode === 'hideflashcolon') {
+            // OFF-Flash-Colon: Hide seconds, flash colon at 2 Hz (illuminates every new second)
+            const milliseconds = now.getMilliseconds();
+            // 2 Hz = flash on for 0-499ms (first half of second)
+            this.colonVisible = (milliseconds < 500);
             const separator = this.colonVisible ? ':' : ' ';
             newTimeText = `${hours}${separator}${minutes}`;
+            showReducedSeconds = false;
+        } else if (secondsMode === 'hideflashdecimal') {
+            // OFF-Flash-Decimal: Static colon, flash decimal point after minutes at 2 Hz
+            const milliseconds = now.getMilliseconds();
+            // 2 Hz = flash on for 0-499ms (first half of second)
+            this.colonVisible = (milliseconds < 500);
+            const decimal = this.colonVisible ? '.' : ' ';
+            newTimeText = `${hours}:${minutes}${decimal}`;
+            showReducedSeconds = false;
+        } else {
+            // Default fallback for any other mode
+            newTimeText = `${hours}:${minutes}`;
             showReducedSeconds = false;
         }
 
