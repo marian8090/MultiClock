@@ -796,8 +796,8 @@ export class DSEGClock {
         if (secondsMode === 'show') {
             // Show seconds at regular size
             this.clockElement.textContent = `${hours}:${minutes}:${seconds}`;
-            // Background inactive segments for LCD mode
-            this.backgroundClockElement.textContent = '!!:!!:!!';
+            // Background all-segments-on for LCD mode (88:88:88 shows all segments)
+            this.backgroundClockElement.textContent = '88:88:88';
         } else if (secondsMode === 'minus20' || secondsMode === 'minus30' || secondsMode === 'minus40' || secondsMode === 'minus50') {
             // Show main time without seconds
             this.clockElement.textContent = `${hours}:${minutes}`;
@@ -808,16 +808,16 @@ export class DSEGClock {
             percentSecondsElement.textContent = `:${seconds}`;
             this.timeContainer.appendChild(percentSecondsElement);
 
-            // Background inactive segments for LCD mode
-            this.backgroundClockElement.textContent = '!!:!!:!!';
+            // Background all-segments-on for LCD mode
+            this.backgroundClockElement.textContent = '88:88:88';
         } else {
             // Hide seconds, but blink colon at 1Hz
             const secondsNum = now.getSeconds();
             this.colonVisible = (secondsNum % 2 === 0);
             const separator = this.colonVisible ? ':' : ' ';
             this.clockElement.textContent = `${hours}${separator}${minutes}`;
-            // Background inactive segments for LCD mode
-            this.backgroundClockElement.textContent = '!!:!!';
+            // Background all-segments-on for LCD mode
+            this.backgroundClockElement.textContent = '88:88';
         }
 
         // Weekday and date display
@@ -833,15 +833,15 @@ export class DSEGClock {
         if (weekdayMode === 'show') {
             this.weekdayDateElement.textContent = `${weekdayString}  ${dateString}`;
             this.weekdayDateElement.style.display = 'block';
-            // Background inactive segments for LCD mode - match weekday length
-            const bgWeekday = '!'.repeat(weekdayString.length);
-            this.backgroundWeekdayDateElement.textContent = `${bgWeekday}  !!.!!.!!!!`;
+            // Background all-segments-on for LCD mode - match weekday length with 8s
+            const bgWeekday = '8'.repeat(weekdayString.length);
+            this.backgroundWeekdayDateElement.textContent = `${bgWeekday}  88.88.8888`;
             this.backgroundWeekdayDateElement.style.display = 'block';
         } else {
             this.weekdayDateElement.textContent = dateString;
             this.weekdayDateElement.style.display = 'block';
-            // Background inactive segments for LCD mode
-            this.backgroundWeekdayDateElement.textContent = '!!.!!.!!!!';
+            // Background all-segments-on for LCD mode
+            this.backgroundWeekdayDateElement.textContent = '88.88.8888';
             this.backgroundWeekdayDateElement.style.display = 'block';
         }
     }
@@ -893,9 +893,9 @@ export class DSEGClock {
             // Using Unicode non-breaking spaces (U+00A0) for better spacing visibility
             this.temperatureElement.textContent = `${this.currentTemperature}°\u00A0\u00A0\u00A0${this.currentTempHigh}°/${this.currentTempLow}°`;
             this.temperatureElement.style.display = 'block';
-            // Background inactive segments for LCD mode
-            // Pattern: !!°   !!°/!!°  (matching temp, high/low format)
-            this.backgroundTemperatureElement.textContent = '!!°\u00A0\u00A0\u00A0!!°/!!°';
+            // Background all-segments-on for LCD mode
+            // Pattern: 88°   88°/88°  (matching temp, high/low format with all segments visible)
+            this.backgroundTemperatureElement.textContent = '88°\u00A0\u00A0\u00A088°/88°';
             this.backgroundTemperatureElement.style.display = 'block';
         } else {
             this.temperatureElement.textContent = '';
