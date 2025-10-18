@@ -3,6 +3,7 @@ export class DSEGClock {
         this.container = null;
         this.clockElement = null;
         this.timeContainer = null;
+        this.timeWrapper = null;
         this.backgroundTimeContainer = null;
         this.weekdayDateElement = null;
         this.temperatureElement = null;
@@ -286,9 +287,13 @@ export class DSEGClock {
                 margin-bottom: 0.5em;
                 position: relative;
                 width: 100%;
-                display: flex;
-                justify-content: center;
-                align-items: baseline;
+                text-align: center;
+            }
+
+            .dseg-time-wrapper {
+                display: inline-block;
+                position: relative;
+                text-align: left;
             }
 
             .dseg-time {
@@ -298,14 +303,14 @@ export class DSEGClock {
                 ${renderingCSS.text}
                 z-index: 2;
                 white-space: pre;
+                position: relative;
             }
 
             .dseg-time-container .dseg-background {
                 opacity: ${this.currentColor === 7 ? this.lcdBackgroundOpacities[this.currentLcdBackgroundOpacity].value : '0'};
                 position: absolute;
                 top: 0;
-                left: 50%;
-                transform: translateX(-50%);
+                left: 0;
                 z-index: 1;
                 pointer-events: none;
                 white-space: nowrap;
@@ -550,6 +555,10 @@ export class DSEGClock {
         this.timeContainer = document.createElement('div');
         this.timeContainer.className = 'dseg-time-container';
 
+        // Create wrapper to control positioning
+        this.timeWrapper = document.createElement('div');
+        this.timeWrapper.className = 'dseg-time-wrapper';
+
         // Create background container that mirrors the foreground layout
         this.backgroundTimeContainer = document.createElement('div');
         this.backgroundTimeContainer.className = 'dseg-background';
@@ -563,8 +572,9 @@ export class DSEGClock {
         this.clockElement = document.createElement('span');
         this.clockElement.className = 'dseg-time';
 
-        this.timeContainer.appendChild(this.backgroundTimeContainer);
-        this.timeContainer.appendChild(this.clockElement);
+        this.timeWrapper.appendChild(this.backgroundTimeContainer);
+        this.timeWrapper.appendChild(this.clockElement);
+        this.timeContainer.appendChild(this.timeWrapper);
 
         // Create container for weekday/date with background
         const weekdayDateContainer = document.createElement('div');
@@ -862,7 +872,7 @@ export class DSEGClock {
         const seconds = String(now.getSeconds()).padStart(2, '0');
 
         // Remove any existing percentage-sized seconds element
-        const existingPercentSeconds = this.timeContainer.querySelector('[class^="dseg-time-minus"]');
+        const existingPercentSeconds = this.timeWrapper.querySelector('[class^="dseg-time-minus"]');
         if (existingPercentSeconds) {
             existingPercentSeconds.remove();
         }
@@ -887,7 +897,7 @@ export class DSEGClock {
             const percentSecondsElement = document.createElement('span');
             percentSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
             percentSecondsElement.textContent = `:${seconds}`;
-            this.timeContainer.appendChild(percentSecondsElement);
+            this.timeWrapper.appendChild(percentSecondsElement);
 
             // Background all-segments-on for LCD mode - match the layout with smaller seconds
             this.backgroundClockElement.textContent = '88:88';
