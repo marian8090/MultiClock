@@ -2,6 +2,8 @@ export class DSEGClock {
     constructor() {
         this.container = null;
         this.clockElement = null;
+        this.reducedSecondsElement = null;
+        this.backgroundReducedSecondsElement = null;
         this.timeContainer = null;
         this.timeWrapper = null;
         this.backgroundTimeContainer = null;
@@ -572,8 +574,18 @@ export class DSEGClock {
         this.clockElement = document.createElement('span');
         this.clockElement.className = 'dseg-time';
 
+        // Create persistent reduced seconds elements for all sizes (initially hidden)
+        // These will stay in the DOM and we'll toggle visibility instead of adding/removing
+        this.reducedSecondsElement = document.createElement('span');
+        this.reducedSecondsElement.style.display = 'none';
+
+        this.backgroundReducedSecondsElement = document.createElement('span');
+        this.backgroundReducedSecondsElement.style.display = 'none';
+
         this.timeWrapper.appendChild(this.backgroundTimeContainer);
         this.timeWrapper.appendChild(this.clockElement);
+        this.timeWrapper.appendChild(this.reducedSecondsElement);
+        this.backgroundTimeContainer.appendChild(this.backgroundReducedSecondsElement);
         this.timeContainer.appendChild(this.timeWrapper);
 
         // Create container for weekday/date with background
@@ -871,43 +883,33 @@ export class DSEGClock {
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
 
-        // Remove any existing percentage-sized seconds element
-        const existingPercentSeconds = this.timeWrapper.querySelector('[class^="dseg-time-minus"]');
-        if (existingPercentSeconds) {
-            existingPercentSeconds.remove();
-        }
-
-        // Remove any existing background percentage-sized seconds element
-        const existingBgPercentSeconds = this.backgroundTimeContainer.querySelector('[class*="dseg-time-minus"]');
-        if (existingBgPercentSeconds) {
-            existingBgPercentSeconds.remove();
-        }
-
         if (secondsMode === 'show') {
             // Show seconds at regular size
             this.clockElement.textContent = `${hours}:${minutes}:${seconds}`;
             // Background all-segments-on for LCD mode (88:88:88 shows all segments)
             this.backgroundClockElement.textContent = '88:88:88';
             this.backgroundClockElement.className = 'dseg-time';
+
+            // Hide reduced seconds elements
+            this.reducedSecondsElement.style.display = 'none';
+            this.backgroundReducedSecondsElement.style.display = 'none';
         } else if (secondsMode === 'minus20' || secondsMode === 'minus30' || secondsMode === 'minus40' || secondsMode === 'minus50') {
             // Show main time without seconds
             this.clockElement.textContent = `${hours}:${minutes}`;
 
-            // Create and append percentage-sized seconds element
-            const percentSecondsElement = document.createElement('span');
-            percentSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
-            percentSecondsElement.textContent = `:${seconds}`;
-            this.timeWrapper.appendChild(percentSecondsElement);
+            // Update and show persistent reduced seconds element with appropriate class
+            this.reducedSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
+            this.reducedSecondsElement.textContent = `:${seconds}`;
+            this.reducedSecondsElement.style.display = 'inline';
 
             // Background all-segments-on for LCD mode - match the layout with smaller seconds
             this.backgroundClockElement.textContent = '88:88';
             this.backgroundClockElement.className = 'dseg-time';
 
-            // Create smaller background seconds to match the reduced font size
-            const bgPercentSecondsElement = document.createElement('span');
-            bgPercentSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
-            bgPercentSecondsElement.textContent = ':88';
-            this.backgroundTimeContainer.appendChild(bgPercentSecondsElement);
+            // Update and show persistent background reduced seconds element
+            this.backgroundReducedSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
+            this.backgroundReducedSecondsElement.textContent = ':88';
+            this.backgroundReducedSecondsElement.style.display = 'inline';
         } else {
             // Hide seconds, but blink colon at 1Hz
             const secondsNum = now.getSeconds();
@@ -917,6 +919,10 @@ export class DSEGClock {
             // Background all-segments-on for LCD mode
             this.backgroundClockElement.textContent = '88:88';
             this.backgroundClockElement.className = 'dseg-time';
+
+            // Hide reduced seconds elements
+            this.reducedSecondsElement.style.display = 'none';
+            this.backgroundReducedSecondsElement.style.display = 'none';
         }
 
         // Weekday and date display
