@@ -137,8 +137,17 @@ export class DSEGClock {
         this.timeFontSizes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 320, 340, 360, 380, 400];
         this.dateFontSizes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 320, 340, 360, 380, 400];
 
+        // Available line spacing options
+        this.lineSpacings = [
+            { name: '1x', value: 1.0 },
+            { name: '2x', value: 2.0 },
+            { name: '3x', value: 3.0 },
+            { name: '4x', value: 4.0 },
+            { name: '5x', value: 5.0 }
+        ];
+
         // Parameters
-        this.parameters = ['CLOCK MODEL', 'FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY', 'TEMPERATURE', 'BG OPACITY', 'FADE TIME', 'GLOW'];
+        this.parameters = ['CLOCK MODEL', 'FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'LINE SPACING', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY', 'TEMPERATURE', 'BG OPACITY', 'FADE TIME', 'GLOW'];
         this.currentParameterIndex = 0;
 
         // Reference to MultiClock instance for clock switching
@@ -157,6 +166,7 @@ export class DSEGClock {
         this.currentBackgroundOpacity = 0; // Off by default (index 0)
         this.currentFadeTime = 0; // Off by default (index 0)
         this.currentGlowLevel = 0; // Off by default (index 0)
+        this.currentLineSpacing = 0; // 1x by default (index 0)
 
         // Colon blink state
         this.colonVisible = true;
@@ -205,7 +215,8 @@ export class DSEGClock {
             currentTemperatureDisplay: this.currentTemperatureDisplay,
             currentBackgroundOpacity: this.currentBackgroundOpacity,
             currentFadeTime: this.currentFadeTime,
-            currentGlowLevel: this.currentGlowLevel
+            currentGlowLevel: this.currentGlowLevel,
+            currentLineSpacing: this.currentLineSpacing
         };
         console.log('[DSEGClock] getSettings() returning:', settings);
         return settings;
@@ -263,8 +274,12 @@ export class DSEGClock {
             console.log('[DSEGClock] Setting currentGlowLevel to:', settings.currentGlowLevel);
             this.currentGlowLevel = settings.currentGlowLevel;
         }
+        if (settings.currentLineSpacing !== undefined && settings.currentLineSpacing >= 0 && settings.currentLineSpacing < this.lineSpacings.length) {
+            console.log('[DSEGClock] Setting currentLineSpacing to:', settings.currentLineSpacing);
+            this.currentLineSpacing = settings.currentLineSpacing;
+        }
 
-        console.log('[DSEGClock] loadSettings() complete. Final values - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentTimeFontSizeIndex:', this.currentTimeFontSizeIndex, 'currentDateFontSizeIndex:', this.currentDateFontSizeIndex, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode, 'currentSecondsDisplay:', this.currentSecondsDisplay, 'currentWeekdayDisplay:', this.currentWeekdayDisplay, 'currentTemperatureDisplay:', this.currentTemperatureDisplay, 'currentBackgroundOpacity:', this.currentBackgroundOpacity, 'currentFadeTime:', this.currentFadeTime, 'currentGlowLevel:', this.currentGlowLevel);
+        console.log('[DSEGClock] loadSettings() complete. Final values - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentTimeFontSizeIndex:', this.currentTimeFontSizeIndex, 'currentDateFontSizeIndex:', this.currentDateFontSizeIndex, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode, 'currentSecondsDisplay:', this.currentSecondsDisplay, 'currentWeekdayDisplay:', this.currentWeekdayDisplay, 'currentTemperatureDisplay:', this.currentTemperatureDisplay, 'currentBackgroundOpacity:', this.currentBackgroundOpacity, 'currentFadeTime:', this.currentFadeTime, 'currentGlowLevel:', this.currentGlowLevel, 'currentLineSpacing:', this.currentLineSpacing);
     }
 
     // Save current settings
@@ -320,9 +335,10 @@ export class DSEGClock {
         const fontFamily = this.getCurrentFontFamily();
         const weekdayFontFamily = this.getCurrentWeekdayFontFamily();
 
-        // Get fade time and glow settings
+        // Get fade time, glow settings, and line spacing
         const fadeTime = this.fadeTimes[this.currentFadeTime].value;
         const glowValue = this.glowLevels[this.currentGlowLevel].value;
+        const lineHeight = this.lineSpacings[this.currentLineSpacing].value;
 
         // Generate transition CSS for opacity (will be controlled via JavaScript for cross-fade)
         const transitionCSS = fadeTime > 0 ? `transition: opacity ${fadeTime}s ease;` : '';
@@ -538,7 +554,7 @@ export class DSEGClock {
                 text-align: center;
                 max-width: 90vw;
                 word-wrap: break-word;
-                line-height: 1.3;
+                line-height: ${lineHeight};
                 ${renderingCSS.text}
                 ${transitionCSS}
                 ${glowCSS}
@@ -555,7 +571,7 @@ export class DSEGClock {
                 text-align: center;
                 max-width: 90vw;
                 word-wrap: break-word;
-                line-height: 1.3;
+                line-height: ${lineHeight};
                 ${renderingCSS.text}
                 ${transitionCSS}
                 ${glowCSS}
@@ -927,6 +943,8 @@ export class DSEGClock {
                 return this.timeFontSizes.map(s => s.toString());
             case 'DATE FONTSIZE':
                 return this.dateFontSizes.map(s => s.toString());
+            case 'LINE SPACING':
+                return this.lineSpacings.map(l => l.name);
             case 'FONT COLOUR':
                 return this.colors.map(c => c.name);
             case 'RENDERER':
@@ -965,6 +983,8 @@ export class DSEGClock {
                 return this.currentTimeFontSizeIndex;
             case 'DATE FONTSIZE':
                 return this.currentDateFontSizeIndex;
+            case 'LINE SPACING':
+                return this.currentLineSpacing;
             case 'FONT COLOUR':
                 return this.currentColor;
             case 'RENDERER':
@@ -1023,6 +1043,10 @@ export class DSEGClock {
                 break;
             case 'DATE FONTSIZE':
                 this.currentDateFontSizeIndex = (this.currentDateFontSizeIndex - 1 + this.dateFontSizes.length) % this.dateFontSizes.length;
+                this.updateStyles();
+                break;
+            case 'LINE SPACING':
+                this.currentLineSpacing = (this.currentLineSpacing - 1 + this.lineSpacings.length) % this.lineSpacings.length;
                 this.updateStyles();
                 break;
             case 'FONT COLOUR':
@@ -1087,6 +1111,10 @@ export class DSEGClock {
                 break;
             case 'DATE FONTSIZE':
                 this.currentDateFontSizeIndex = (this.currentDateFontSizeIndex + 1) % this.dateFontSizes.length;
+                this.updateStyles();
+                break;
+            case 'LINE SPACING':
+                this.currentLineSpacing = (this.currentLineSpacing + 1) % this.lineSpacings.length;
                 this.updateStyles();
                 break;
             case 'FONT COLOUR':
