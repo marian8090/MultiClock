@@ -251,6 +251,7 @@ export class DSEGClock {
                 width: 100vw;
                 height: 100vh;
                 background-color: ${backgroundColor};
+                ${this.currentColor === 7 ? "background-image: url('clocks/DSEG LED background.png'); background-size: cover; background-position: center;" : ''}
                 color: ${currentColor};
                 font-family: '${fontFamily}', monospace;
                 overflow: hidden;
@@ -312,6 +313,8 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0.05em;
                 ${renderingCSS.text}
+                position: relative;
+                z-index: 2;
             }
 
             .dseg-time-minus30-seconds {
@@ -319,6 +322,8 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0.05em;
                 ${renderingCSS.text}
+                position: relative;
+                z-index: 2;
             }
 
             .dseg-time-minus40-seconds {
@@ -326,6 +331,8 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0.05em;
                 ${renderingCSS.text}
+                position: relative;
+                z-index: 2;
             }
 
             .dseg-time-minus50-seconds {
@@ -333,6 +340,16 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0.05em;
                 ${renderingCSS.text}
+                position: relative;
+                z-index: 2;
+            }
+
+            .dseg-time-minus20-seconds.dseg-background,
+            .dseg-time-minus30-seconds.dseg-background,
+            .dseg-time-minus40-seconds.dseg-background,
+            .dseg-time-minus50-seconds.dseg-background {
+                position: absolute;
+                z-index: 1;
             }
 
             .dseg-weekday-date-container,
@@ -825,11 +842,18 @@ export class DSEGClock {
             existingPercentSeconds.remove();
         }
 
+        // Remove any existing background percentage-sized seconds element
+        const existingBgPercentSeconds = this.timeContainer.querySelector('.dseg-background[class*="dseg-time-minus"]');
+        if (existingBgPercentSeconds) {
+            existingBgPercentSeconds.remove();
+        }
+
         if (secondsMode === 'show') {
             // Show seconds at regular size
             this.clockElement.textContent = `${hours}:${minutes}:${seconds}`;
             // Background all-segments-on for LCD mode (88:88:88 shows all segments)
             this.backgroundClockElement.textContent = '88:88:88';
+            this.backgroundClockElement.className = 'dseg-time dseg-background';
         } else if (secondsMode === 'minus20' || secondsMode === 'minus30' || secondsMode === 'minus40' || secondsMode === 'minus50') {
             // Show main time without seconds
             this.clockElement.textContent = `${hours}:${minutes}`;
@@ -840,8 +864,15 @@ export class DSEGClock {
             percentSecondsElement.textContent = `:${seconds}`;
             this.timeContainer.appendChild(percentSecondsElement);
 
-            // Background all-segments-on for LCD mode
-            this.backgroundClockElement.textContent = '88:88:88';
+            // Background all-segments-on for LCD mode - match the layout with smaller seconds
+            this.backgroundClockElement.textContent = '88:88';
+            this.backgroundClockElement.className = 'dseg-time dseg-background';
+
+            // Create smaller background seconds to match the reduced font size
+            const bgPercentSecondsElement = document.createElement('span');
+            bgPercentSecondsElement.className = `dseg-time-${secondsMode}-seconds dseg-background`;
+            bgPercentSecondsElement.textContent = ':88';
+            this.timeContainer.appendChild(bgPercentSecondsElement);
         } else {
             // Hide seconds, but blink colon at 1Hz
             const secondsNum = now.getSeconds();
@@ -850,6 +881,7 @@ export class DSEGClock {
             this.clockElement.textContent = `${hours}${separator}${minutes}`;
             // Background all-segments-on for LCD mode
             this.backgroundClockElement.textContent = '88:88';
+            this.backgroundClockElement.className = 'dseg-time dseg-background';
         }
 
         // Weekday and date display
