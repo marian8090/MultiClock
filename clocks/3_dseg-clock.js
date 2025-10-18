@@ -82,7 +82,13 @@ export class DSEGClock {
             { name: '5%', value: 0.05 },
             { name: '10%', value: 0.10 },
             { name: '15%', value: 0.15 },
-            { name: '20%', value: 0.20 }
+            { name: '20%', value: 0.20 },
+            { name: '25%', value: 0.25 },
+            { name: '30%', value: 0.30 },
+            { name: '35%', value: 0.35 },
+            { name: '40%', value: 0.40 },
+            { name: '45%', value: 0.45 },
+            { name: '50%', value: 0.50 }
         ];
 
         // Available font sizes (in points, like MS Word) - 36 to 400 with finer steps
