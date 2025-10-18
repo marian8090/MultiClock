@@ -287,6 +287,7 @@ export class DSEGClock {
                 position: relative;
                 text-align: center;
                 width: 100%;
+                white-space: nowrap;
             }
 
             .dseg-time {
