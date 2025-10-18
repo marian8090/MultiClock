@@ -285,9 +285,10 @@ export class DSEGClock {
             .dseg-time-container {
                 margin-bottom: 0.5em;
                 position: relative;
-                text-align: center;
                 width: 100%;
-                white-space: nowrap;
+                display: flex;
+                justify-content: center;
+                align-items: baseline;
             }
 
             .dseg-time {
@@ -295,23 +296,19 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0;
                 ${renderingCSS.text}
-                position: relative;
                 z-index: 2;
                 white-space: pre;
-                display: inline-block;
             }
 
             .dseg-time-container .dseg-background {
                 opacity: ${this.currentColor === 7 ? this.lcdBackgroundOpacities[this.currentLcdBackgroundOpacity].value : '0'};
                 position: absolute;
                 top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                text-align: center;
+                left: 50%;
+                transform: translateX(-50%);
                 z-index: 1;
                 pointer-events: none;
-                white-space: pre;
+                white-space: nowrap;
             }
 
             .dseg-weekday-date.dseg-background,
@@ -331,10 +328,8 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0;
                 ${renderingCSS.text}
-                position: relative;
                 z-index: 2;
                 white-space: pre;
-                display: inline-block;
             }
 
             .dseg-time-minus30-seconds {
@@ -342,10 +337,8 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0;
                 ${renderingCSS.text}
-                position: relative;
                 z-index: 2;
                 white-space: pre;
-                display: inline-block;
             }
 
             .dseg-time-minus40-seconds {
@@ -353,10 +346,8 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0;
                 ${renderingCSS.text}
-                position: relative;
                 z-index: 2;
                 white-space: pre;
-                display: inline-block;
             }
 
             .dseg-time-minus50-seconds {
@@ -364,10 +355,8 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0;
                 ${renderingCSS.text}
-                position: relative;
                 z-index: 2;
                 white-space: pre;
-                display: inline-block;
             }
 
             .dseg-weekday-date-container,
@@ -385,10 +374,8 @@ export class DSEGClock {
                 word-wrap: break-word;
                 line-height: 1.3;
                 ${renderingCSS.text}
-                position: relative;
                 z-index: 2;
                 white-space: pre;
-                display: inline-block;
             }
 
             .dseg-temperature-container {
@@ -402,10 +389,8 @@ export class DSEGClock {
                 font-family: '${weekdayFontFamily}', monospace;
                 text-align: center;
                 ${renderingCSS.text}
-                position: relative;
                 z-index: 2;
                 white-space: pre;
-                display: inline-block;
             }
 
             .parameter-display {
