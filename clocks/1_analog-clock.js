@@ -210,7 +210,7 @@ export class AnalogClock {
 
         this.dayText = new PIXI.Text('--', dayTextStyle);
         this.dayText.anchor.set(1, 0.5); // Right-align text (anchor at right edge)
-        this.dayText.x = this.clockX + 0.75 * this.ro; // Position right edge left of tick marks
+        this.dayText.x = this.clockX + 0.63 * this.ro; // Position right edge further left (1 char width)
         this.dayText.y = this.clockY;
         this.watch.addChild(this.dayText);
     }
