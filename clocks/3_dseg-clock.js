@@ -326,6 +326,7 @@ export class DSEGClock {
                 right: 0;
                 z-index: 1;
                 pointer-events: none;
+                white-space: pre;
             }
 
             .dseg-time-minus20-seconds {
@@ -335,6 +336,7 @@ export class DSEGClock {
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
+                white-space: pre;
             }
 
             .dseg-time-minus30-seconds {
@@ -344,6 +346,7 @@ export class DSEGClock {
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
+                white-space: pre;
             }
 
             .dseg-time-minus40-seconds {
@@ -353,6 +356,7 @@ export class DSEGClock {
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
+                white-space: pre;
             }
 
             .dseg-time-minus50-seconds {
@@ -362,6 +366,7 @@ export class DSEGClock {
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
+                white-space: pre;
             }
 
             .dseg-weekday-date-container,
@@ -381,6 +386,7 @@ export class DSEGClock {
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
+                white-space: pre;
             }
 
             .dseg-temperature-container {
@@ -396,6 +402,7 @@ export class DSEGClock {
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
+                white-space: pre;
             }
 
             .parameter-display {
