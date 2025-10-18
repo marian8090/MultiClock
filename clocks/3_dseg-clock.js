@@ -2,13 +2,17 @@ export class DSEGClock {
     constructor() {
         this.container = null;
         this.clockElement = null;
+        this.clockElementOld = null; // For fade transitions
         this.reducedSecondsElement = null;
+        this.reducedSecondsElementOld = null; // For fade transitions
         this.backgroundReducedSecondsElement = null;
         this.timeContainer = null;
         this.timeWrapper = null;
         this.backgroundTimeContainer = null;
         this.weekdayDateElement = null;
+        this.weekdayDateElementOld = null; // For fade transitions
         this.temperatureElement = null;
+        this.temperatureElementOld = null; // For fade transitions
         this.backgroundClockElement = null;
         this.backgroundWeekdayDateElement = null;
         this.backgroundTemperatureElement = null;
@@ -18,6 +22,12 @@ export class DSEGClock {
         this.currentTemperature = '--';
         this.currentTempHigh = '--';
         this.currentTempLow = '--';
+
+        // Track previous values for fade detection
+        this.previousTimeText = '';
+        this.previousReducedSecondsText = '';
+        this.previousWeekdayDateText = '';
+        this.previousTemperatureText = '';
 
         // Available font types
         this.fontTypes = [
@@ -66,8 +76,11 @@ export class DSEGClock {
 
         // Available weekday display modes
         this.weekdayDisplayModes = [
-            { name: 'Show', value: 'show' },
-            { name: 'Hide', value: 'hide' }
+            { name: 'Off', value: 'off' },
+            { name: '2 Chars', value: '2chars' },
+            { name: '3 Chars', value: '3chars' },
+            { name: 'Full', value: 'full' },
+            { name: 'Full Separate', value: 'fullseparate' }
         ];
 
         // Available temperature display modes
@@ -77,18 +90,46 @@ export class DSEGClock {
         ];
 
         // Available background opacity levels (for all color schemes)
+        // 50% = what was previously 25%
         this.backgroundOpacities = [
             { name: 'Off', value: 0.00 },
-            { name: '5%', value: 0.05 },
-            { name: '10%', value: 0.10 },
-            { name: '15%', value: 0.15 },
-            { name: '20%', value: 0.20 },
-            { name: '25%', value: 0.25 },
-            { name: '30%', value: 0.30 },
-            { name: '35%', value: 0.35 },
-            { name: '40%', value: 0.40 },
-            { name: '45%', value: 0.45 },
-            { name: '50%', value: 0.50 }
+            { name: '5%', value: 0.025 },
+            { name: '10%', value: 0.05 },
+            { name: '15%', value: 0.075 },
+            { name: '20%', value: 0.10 },
+            { name: '25%', value: 0.125 },
+            { name: '30%', value: 0.15 },
+            { name: '35%', value: 0.175 },
+            { name: '40%', value: 0.20 },
+            { name: '45%', value: 0.225 },
+            { name: '50%', value: 0.25 }
+        ];
+
+        // Available fade times for smooth transitions
+        this.fadeTimes = [
+            { name: 'Off', value: 0 },
+            { name: '0.05s', value: 0.05 },
+            { name: '0.1s', value: 0.1 },
+            { name: '0.2s', value: 0.2 },
+            { name: '0.3s', value: 0.3 },
+            { name: '0.4s', value: 0.4 },
+            { name: '0.5s', value: 0.5 }
+        ];
+
+        // Available glow levels for LED effect (percentages of max intensity)
+        // 100% = what was previously 80% intensity
+        this.glowLevels = [
+            { name: 'Off', value: 'none' },
+            { name: '10%', value: '0 0 1.2px currentColor' },
+            { name: '20%', value: '0 0 2.4px currentColor' },
+            { name: '30%', value: '0 0 3.6px currentColor, 0 0 1.2px currentColor' },
+            { name: '40%', value: '0 0 4.8px currentColor, 0 0 2.4px currentColor' },
+            { name: '50%', value: '0 0 6px currentColor, 0 0 3px currentColor' },
+            { name: '60%', value: '0 0 7.2px currentColor, 0 0 4.2px currentColor' },
+            { name: '70%', value: '0 0 8.4px currentColor, 0 0 5.4px currentColor, 0 0 1.8px currentColor' },
+            { name: '80%', value: '0 0 9.6px currentColor, 0 0 6.6px currentColor, 0 0 2.4px currentColor' },
+            { name: '90%', value: '0 0 10.8px currentColor, 0 0 7.8px currentColor, 0 0 3px currentColor' },
+            { name: '100%', value: '0 0 12px currentColor, 0 0 9px currentColor, 0 0 3px currentColor' }
         ];
 
         // Available font sizes (in points, like MS Word) - 36 to 400 with finer steps
@@ -96,7 +137,7 @@ export class DSEGClock {
         this.dateFontSizes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 320, 340, 360, 380, 400];
 
         // Parameters
-        this.parameters = ['CLOCK MODEL', 'FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY', 'TEMPERATURE', 'BG OPACITY'];
+        this.parameters = ['CLOCK MODEL', 'FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY', 'TEMPERATURE', 'BG OPACITY', 'FADE TIME', 'GLOW'];
         this.currentParameterIndex = 0;
 
         // Reference to MultiClock instance for clock switching
@@ -110,9 +151,11 @@ export class DSEGClock {
         this.currentColor = 6; // White by default
         this.currentRenderMode = 0; // Smooth by default
         this.currentSecondsDisplay = 0; // Show by default
-        this.currentWeekdayDisplay = 0; // Show by default
+        this.currentWeekdayDisplay = 3; // Full by default (index 3)
         this.currentTemperatureDisplay = 1; // Hide by default
         this.currentBackgroundOpacity = 0; // Off by default (index 0)
+        this.currentFadeTime = 0; // Off by default (index 0)
+        this.currentGlowLevel = 0; // Off by default (index 0)
 
         // Colon blink state
         this.colonVisible = true;
@@ -159,7 +202,9 @@ export class DSEGClock {
             currentSecondsDisplay: this.currentSecondsDisplay,
             currentWeekdayDisplay: this.currentWeekdayDisplay,
             currentTemperatureDisplay: this.currentTemperatureDisplay,
-            currentBackgroundOpacity: this.currentBackgroundOpacity
+            currentBackgroundOpacity: this.currentBackgroundOpacity,
+            currentFadeTime: this.currentFadeTime,
+            currentGlowLevel: this.currentGlowLevel
         };
         console.log('[DSEGClock] getSettings() returning:', settings);
         return settings;
@@ -209,8 +254,16 @@ export class DSEGClock {
             console.log('[DSEGClock] Setting currentBackgroundOpacity to:', settings.currentBackgroundOpacity);
             this.currentBackgroundOpacity = settings.currentBackgroundOpacity;
         }
+        if (settings.currentFadeTime !== undefined && settings.currentFadeTime >= 0 && settings.currentFadeTime < this.fadeTimes.length) {
+            console.log('[DSEGClock] Setting currentFadeTime to:', settings.currentFadeTime);
+            this.currentFadeTime = settings.currentFadeTime;
+        }
+        if (settings.currentGlowLevel !== undefined && settings.currentGlowLevel >= 0 && settings.currentGlowLevel < this.glowLevels.length) {
+            console.log('[DSEGClock] Setting currentGlowLevel to:', settings.currentGlowLevel);
+            this.currentGlowLevel = settings.currentGlowLevel;
+        }
 
-        console.log('[DSEGClock] loadSettings() complete. Final values - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentTimeFontSizeIndex:', this.currentTimeFontSizeIndex, 'currentDateFontSizeIndex:', this.currentDateFontSizeIndex, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode, 'currentSecondsDisplay:', this.currentSecondsDisplay, 'currentWeekdayDisplay:', this.currentWeekdayDisplay, 'currentTemperatureDisplay:', this.currentTemperatureDisplay, 'currentBackgroundOpacity:', this.currentBackgroundOpacity);
+        console.log('[DSEGClock] loadSettings() complete. Final values - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentTimeFontSizeIndex:', this.currentTimeFontSizeIndex, 'currentDateFontSizeIndex:', this.currentDateFontSizeIndex, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode, 'currentSecondsDisplay:', this.currentSecondsDisplay, 'currentWeekdayDisplay:', this.currentWeekdayDisplay, 'currentTemperatureDisplay:', this.currentTemperatureDisplay, 'currentBackgroundOpacity:', this.currentBackgroundOpacity, 'currentFadeTime:', this.currentFadeTime, 'currentGlowLevel:', this.currentGlowLevel);
     }
 
     // Save current settings
@@ -266,6 +319,15 @@ export class DSEGClock {
         const fontFamily = this.getCurrentFontFamily();
         const weekdayFontFamily = this.getCurrentWeekdayFontFamily();
 
+        // Get fade time and glow settings
+        const fadeTime = this.fadeTimes[this.currentFadeTime].value;
+        const glowValue = this.glowLevels[this.currentGlowLevel].value;
+
+        // Generate transition CSS for opacity (will be controlled via JavaScript for cross-fade)
+        const transitionCSS = fadeTime > 0 ? `transition: opacity ${fadeTime}s ease;` : '';
+        // Generate glow CSS
+        const glowCSS = glowValue !== 'none' ? `text-shadow: ${glowValue};` : '';
+
         this.styleElement.textContent = `
             ${fontFaces}
 
@@ -310,9 +372,26 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0;
                 ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
                 z-index: 2;
                 white-space: pre;
                 position: relative;
+            }
+
+            .dseg-time-old {
+                font-size: ${clockFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0;
+                ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
+                z-index: 3;
+                white-space: pre;
+                position: absolute;
+                top: 0;
+                left: 0;
+                pointer-events: none;
             }
 
             .dseg-time-container .dseg-background {
@@ -342,8 +421,26 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0;
                 ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
                 z-index: 2;
                 white-space: pre;
+                position: relative;
+            }
+
+            .dseg-time-minus20-seconds-old {
+                font-size: ${minus20SecondsFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0;
+                ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
+                z-index: 3;
+                white-space: pre;
+                position: absolute;
+                top: 0;
+                left: 0;
+                pointer-events: none;
             }
 
             .dseg-time-minus30-seconds {
@@ -351,8 +448,26 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0;
                 ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
                 z-index: 2;
                 white-space: pre;
+                position: relative;
+            }
+
+            .dseg-time-minus30-seconds-old {
+                font-size: ${minus30SecondsFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0;
+                ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
+                z-index: 3;
+                white-space: pre;
+                position: absolute;
+                top: 0;
+                left: 0;
+                pointer-events: none;
             }
 
             .dseg-time-minus40-seconds {
@@ -360,8 +475,26 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0;
                 ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
                 z-index: 2;
                 white-space: pre;
+                position: relative;
+            }
+
+            .dseg-time-minus40-seconds-old {
+                font-size: ${minus40SecondsFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0;
+                ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
+                z-index: 3;
+                white-space: pre;
+                position: absolute;
+                top: 0;
+                left: 0;
+                pointer-events: none;
             }
 
             .dseg-time-minus50-seconds {
@@ -369,8 +502,26 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0;
                 ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
                 z-index: 2;
                 white-space: pre;
+                position: relative;
+            }
+
+            .dseg-time-minus50-seconds-old {
+                font-size: ${minus50SecondsFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0;
+                ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
+                z-index: 3;
+                white-space: pre;
+                position: absolute;
+                top: 0;
+                left: 0;
+                pointer-events: none;
             }
 
             .dseg-weekday-date-container,
@@ -388,8 +539,32 @@ export class DSEGClock {
                 word-wrap: break-word;
                 line-height: 1.3;
                 ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
                 z-index: 2;
                 white-space: pre;
+                position: relative;
+            }
+
+            .dseg-weekday-date-old {
+                font-size: ${dateFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0;
+                font-family: '${weekdayFontFamily}', monospace;
+                text-align: center;
+                max-width: 90vw;
+                word-wrap: break-word;
+                line-height: 1.3;
+                ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
+                z-index: 3;
+                white-space: pre;
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                pointer-events: none;
             }
 
             .dseg-temperature-container {
@@ -403,8 +578,29 @@ export class DSEGClock {
                 font-family: '${weekdayFontFamily}', monospace;
                 text-align: center;
                 ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
                 z-index: 2;
                 white-space: pre;
+                position: relative;
+            }
+
+            .dseg-temperature-old {
+                font-size: ${dateFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0;
+                font-family: '${weekdayFontFamily}', monospace;
+                text-align: center;
+                ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
+                z-index: 3;
+                white-space: pre;
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                pointer-events: none;
             }
 
             .parameter-display {
@@ -581,17 +777,28 @@ export class DSEGClock {
         this.clockElement = document.createElement('span');
         this.clockElement.className = 'dseg-time';
 
+        // Create "old" layer for fade transitions
+        this.clockElementOld = document.createElement('span');
+        this.clockElementOld.className = 'dseg-time-old';
+        this.clockElementOld.style.opacity = '0';
+
         // Create persistent reduced seconds elements for all sizes (initially hidden)
         // These will stay in the DOM and we'll toggle visibility instead of adding/removing
         this.reducedSecondsElement = document.createElement('span');
         this.reducedSecondsElement.style.display = 'none';
+
+        this.reducedSecondsElementOld = document.createElement('span');
+        this.reducedSecondsElementOld.style.display = 'none';
+        this.reducedSecondsElementOld.style.opacity = '0';
 
         this.backgroundReducedSecondsElement = document.createElement('span');
         this.backgroundReducedSecondsElement.style.display = 'none';
 
         this.timeWrapper.appendChild(this.backgroundTimeContainer);
         this.timeWrapper.appendChild(this.clockElement);
+        this.timeWrapper.appendChild(this.clockElementOld);
         this.timeWrapper.appendChild(this.reducedSecondsElement);
+        this.timeWrapper.appendChild(this.reducedSecondsElementOld);
         this.backgroundTimeContainer.appendChild(this.backgroundReducedSecondsElement);
         this.timeContainer.appendChild(this.timeWrapper);
 
@@ -605,8 +812,14 @@ export class DSEGClock {
         this.weekdayDateElement = document.createElement('div');
         this.weekdayDateElement.className = 'dseg-weekday-date';
 
+        // Create "old" layer for weekday/date fade transitions
+        this.weekdayDateElementOld = document.createElement('div');
+        this.weekdayDateElementOld.className = 'dseg-weekday-date-old';
+        this.weekdayDateElementOld.style.opacity = '0';
+
         weekdayDateContainer.appendChild(this.backgroundWeekdayDateElement);
         weekdayDateContainer.appendChild(this.weekdayDateElement);
+        weekdayDateContainer.appendChild(this.weekdayDateElementOld);
 
         // Create container for temperature with background
         const temperatureContainer = document.createElement('div');
@@ -618,8 +831,14 @@ export class DSEGClock {
         this.temperatureElement = document.createElement('div');
         this.temperatureElement.className = 'dseg-temperature';
 
+        // Create "old" layer for temperature fade transitions
+        this.temperatureElementOld = document.createElement('div');
+        this.temperatureElementOld.className = 'dseg-temperature-old';
+        this.temperatureElementOld.style.opacity = '0';
+
         temperatureContainer.appendChild(this.backgroundTemperatureElement);
         temperatureContainer.appendChild(this.temperatureElement);
+        temperatureContainer.appendChild(this.temperatureElementOld);
 
         display.appendChild(this.timeContainer);
         display.appendChild(weekdayDateContainer);
@@ -719,6 +938,10 @@ export class DSEGClock {
                 return this.temperatureDisplayModes.map(t => t.name);
             case 'BG OPACITY':
                 return this.backgroundOpacities.map(o => o.name);
+            case 'FADE TIME':
+                return this.fadeTimes.map(f => f.name);
+            case 'GLOW':
+                return this.glowLevels.map(g => g.name);
             default:
                 return [];
         }
@@ -753,6 +976,10 @@ export class DSEGClock {
                 return this.currentTemperatureDisplay;
             case 'BG OPACITY':
                 return this.currentBackgroundOpacity;
+            case 'FADE TIME':
+                return this.currentFadeTime;
+            case 'GLOW':
+                return this.currentGlowLevel;
             default:
                 return 0;
         }
@@ -819,6 +1046,14 @@ export class DSEGClock {
                 this.currentBackgroundOpacity = (this.currentBackgroundOpacity - 1 + this.backgroundOpacities.length) % this.backgroundOpacities.length;
                 this.updateStyles();
                 break;
+            case 'FADE TIME':
+                this.currentFadeTime = (this.currentFadeTime - 1 + this.fadeTimes.length) % this.fadeTimes.length;
+                this.updateStyles();
+                break;
+            case 'GLOW':
+                this.currentGlowLevel = (this.currentGlowLevel - 1 + this.glowLevels.length) % this.glowLevels.length;
+                this.updateStyles();
+                break;
         }
 
         this.saveSettings();
@@ -875,6 +1110,14 @@ export class DSEGClock {
                 this.currentBackgroundOpacity = (this.currentBackgroundOpacity + 1) % this.backgroundOpacities.length;
                 this.updateStyles();
                 break;
+            case 'FADE TIME':
+                this.currentFadeTime = (this.currentFadeTime + 1) % this.fadeTimes.length;
+                this.updateStyles();
+                break;
+            case 'GLOW':
+                this.currentGlowLevel = (this.currentGlowLevel + 1) % this.glowLevels.length;
+                this.updateStyles();
+                break;
         }
 
         this.saveSettings();
@@ -885,77 +1128,174 @@ export class DSEGClock {
         const now = new Date();
         const secondsMode = this.secondsDisplayModes[this.currentSecondsDisplay].value;
         const weekdayMode = this.weekdayDisplayModes[this.currentWeekdayDisplay].value;
+        const fadeEnabled = this.fadeTimes[this.currentFadeTime].value > 0;
 
         const hours = String(now.getHours()).padStart(2, '0');
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
 
+        // Determine new text content based on seconds mode
+        let newTimeText = '';
+        let newReducedSecondsText = '';
+        let reducedSecondsClass = '';
+        let showReducedSeconds = false;
+
         if (secondsMode === 'show') {
-            // Show seconds at regular size
-            this.clockElement.textContent = `${hours}:${minutes}:${seconds}`;
-            // Background all-segments-on for LCD mode (88:88:88 shows all segments)
-            this.backgroundClockElement.textContent = '88:88:88';
-            this.backgroundClockElement.className = 'dseg-time';
-
-            // Hide reduced seconds elements
-            this.reducedSecondsElement.style.display = 'none';
-            this.backgroundReducedSecondsElement.style.display = 'none';
+            newTimeText = `${hours}:${minutes}:${seconds}`;
+            showReducedSeconds = false;
         } else if (secondsMode === 'minus20' || secondsMode === 'minus30' || secondsMode === 'minus40' || secondsMode === 'minus50') {
-            // Show main time without seconds
-            this.clockElement.textContent = `${hours}:${minutes}`;
-
-            // Update and show persistent reduced seconds element with appropriate class
-            this.reducedSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
-            this.reducedSecondsElement.textContent = `:${seconds}`;
-            this.reducedSecondsElement.style.display = 'inline';
-
-            // Background all-segments-on for LCD mode - match the layout with smaller seconds
-            this.backgroundClockElement.textContent = '88:88';
-            this.backgroundClockElement.className = 'dseg-time';
-
-            // Update and show persistent background reduced seconds element
-            this.backgroundReducedSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
-            this.backgroundReducedSecondsElement.textContent = ':88';
-            this.backgroundReducedSecondsElement.style.display = 'inline';
+            newTimeText = `${hours}:${minutes}`;
+            newReducedSecondsText = `:${seconds}`;
+            reducedSecondsClass = `dseg-time-${secondsMode}-seconds`;
+            showReducedSeconds = true;
         } else {
             // Hide seconds, but blink colon at 1Hz
             const secondsNum = now.getSeconds();
             this.colonVisible = (secondsNum % 2 === 0);
             const separator = this.colonVisible ? ':' : ' ';
-            this.clockElement.textContent = `${hours}${separator}${minutes}`;
-            // Background all-segments-on for LCD mode
+            newTimeText = `${hours}${separator}${minutes}`;
+            showReducedSeconds = false;
+        }
+
+        // Handle time element cross-fade
+        if (fadeEnabled && this.previousTimeText !== '' && this.previousTimeText !== newTimeText) {
+            // Content changed - trigger cross-fade
+            this.clockElementOld.textContent = this.previousTimeText;
+            this.clockElementOld.style.opacity = '1';
+            this.clockElement.textContent = newTimeText;
+            this.clockElement.style.opacity = '0';
+
+            // Use requestAnimationFrame to ensure initial state is rendered before transition
+            requestAnimationFrame(() => {
+                this.clockElementOld.style.opacity = '0';
+                this.clockElement.style.opacity = '1';
+            });
+        } else {
+            // No fade needed - instant update
+            this.clockElement.textContent = newTimeText;
+            this.clockElement.style.opacity = '1';
+            this.clockElementOld.style.opacity = '0';
+        }
+
+        // Handle reduced seconds element cross-fade
+        if (showReducedSeconds) {
+            if (fadeEnabled && this.previousReducedSecondsText !== '' && this.previousReducedSecondsText !== newReducedSecondsText) {
+                // Content changed - trigger cross-fade
+                this.reducedSecondsElementOld.textContent = this.previousReducedSecondsText;
+                this.reducedSecondsElementOld.className = reducedSecondsClass + '-old';
+                this.reducedSecondsElementOld.style.display = 'inline';
+                this.reducedSecondsElementOld.style.opacity = '1';
+                this.reducedSecondsElement.textContent = newReducedSecondsText;
+                this.reducedSecondsElement.className = reducedSecondsClass;
+                this.reducedSecondsElement.style.display = 'inline';
+                this.reducedSecondsElement.style.opacity = '0';
+
+                // Use requestAnimationFrame to ensure initial state is rendered before transition
+                requestAnimationFrame(() => {
+                    this.reducedSecondsElementOld.style.opacity = '0';
+                    this.reducedSecondsElement.style.opacity = '1';
+                });
+            } else {
+                // No fade needed
+                this.reducedSecondsElement.textContent = newReducedSecondsText;
+                this.reducedSecondsElement.className = reducedSecondsClass;
+                this.reducedSecondsElement.style.display = 'inline';
+                this.reducedSecondsElement.style.opacity = '1';
+                this.reducedSecondsElementOld.style.opacity = '0';
+            }
+        } else {
+            this.reducedSecondsElement.style.display = 'none';
+            this.reducedSecondsElementOld.style.display = 'none';
+        }
+
+        // Update background elements (for LCD mode)
+        if (secondsMode === 'show') {
+            this.backgroundClockElement.textContent = '88:88:88';
+            this.backgroundClockElement.className = 'dseg-time';
+            this.backgroundReducedSecondsElement.style.display = 'none';
+        } else if (showReducedSeconds) {
             this.backgroundClockElement.textContent = '88:88';
             this.backgroundClockElement.className = 'dseg-time';
-
-            // Hide reduced seconds elements
-            this.reducedSecondsElement.style.display = 'none';
+            this.backgroundReducedSecondsElement.textContent = ':88';
+            this.backgroundReducedSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
+            this.backgroundReducedSecondsElement.style.display = 'inline';
+        } else {
+            this.backgroundClockElement.textContent = '88:88';
+            this.backgroundClockElement.className = 'dseg-time';
             this.backgroundReducedSecondsElement.style.display = 'none';
         }
 
         // Weekday and date display
         const weekdayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-        const weekdayString = weekdayNames[now.getDay()];
+        const weekdayNames2Char = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+        const weekdayNames3Char = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+        const weekdayFull = weekdayNames[now.getDay()];
+        const weekday2Char = weekdayNames2Char[now.getDay()];
+        const weekday3Char = weekdayNames3Char[now.getDay()];
 
         const day = String(now.getDate()).padStart(2, '0');
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const year = now.getFullYear();
         const dateString = `${day}.${month}.${year}`;
 
-        // Show weekday and date on one line if weekday is shown, otherwise just date
-        if (weekdayMode === 'show') {
-            this.weekdayDateElement.textContent = `${weekdayString}  ${dateString}`;
-            this.weekdayDateElement.style.display = 'block';
-            // Background all-segments-on for LCD mode - match weekday length with 8s
-            const bgWeekday = '8'.repeat(weekdayString.length);
-            this.backgroundWeekdayDateElement.textContent = `${bgWeekday}  88.88.8888`;
-            this.backgroundWeekdayDateElement.style.display = 'block';
-        } else {
-            this.weekdayDateElement.textContent = dateString;
-            this.weekdayDateElement.style.display = 'block';
-            // Background all-segments-on for LCD mode
-            this.backgroundWeekdayDateElement.textContent = '88.88.8888';
-            this.backgroundWeekdayDateElement.style.display = 'block';
+        let newWeekdayDateText = '';
+        let bgWeekdayText = '';
+
+        switch (weekdayMode) {
+            case 'off':
+                newWeekdayDateText = dateString;
+                bgWeekdayText = '88.88.8888';
+                break;
+            case '2chars':
+                newWeekdayDateText = `${weekday2Char}  ${dateString}`;
+                bgWeekdayText = '88  88.88.8888';
+                break;
+            case '3chars':
+                newWeekdayDateText = `${weekday3Char}  ${dateString}`;
+                bgWeekdayText = '888  88.88.8888';
+                break;
+            case 'full':
+                newWeekdayDateText = `${weekdayFull}  ${dateString}`;
+                bgWeekdayText = '8'.repeat(weekdayFull.length) + '  88.88.8888';
+                break;
+            case 'fullseparate':
+                newWeekdayDateText = `${weekdayFull}\n${dateString}`;
+                bgWeekdayText = '8'.repeat(weekdayFull.length) + '\n88.88.8888';
+                break;
+            default:
+                newWeekdayDateText = dateString;
+                bgWeekdayText = '88.88.8888';
         }
+
+        // Handle weekday/date cross-fade
+        if (fadeEnabled && this.previousWeekdayDateText !== '' && this.previousWeekdayDateText !== newWeekdayDateText) {
+            this.weekdayDateElementOld.textContent = this.previousWeekdayDateText;
+            this.weekdayDateElementOld.style.display = 'block';
+            this.weekdayDateElementOld.style.opacity = '1';
+            this.weekdayDateElement.textContent = newWeekdayDateText;
+            this.weekdayDateElement.style.display = 'block';
+            this.weekdayDateElement.style.opacity = '0';
+
+            // Use requestAnimationFrame to ensure initial state is rendered before transition
+            requestAnimationFrame(() => {
+                this.weekdayDateElementOld.style.opacity = '0';
+                this.weekdayDateElement.style.opacity = '1';
+            });
+        } else {
+            this.weekdayDateElement.textContent = newWeekdayDateText;
+            this.weekdayDateElement.style.display = 'block';
+            this.weekdayDateElement.style.opacity = '1';
+            this.weekdayDateElementOld.style.opacity = '0';
+        }
+
+        // Update background for weekday/date
+        this.backgroundWeekdayDateElement.textContent = bgWeekdayText;
+        this.backgroundWeekdayDateElement.style.display = 'block';
+
+        // Store current values for next update
+        this.previousTimeText = newTimeText;
+        this.previousReducedSecondsText = newReducedSecondsText;
+        this.previousWeekdayDateText = newWeekdayDateText;
     }
 
     startUpdate() {
@@ -1000,11 +1340,36 @@ export class DSEGClock {
 
     updateTemperatureDisplay() {
         const temperatureMode = this.temperatureDisplayModes[this.currentTemperatureDisplay].value;
+        const fadeEnabled = this.fadeTimes[this.currentFadeTime].value > 0;
 
         if (temperatureMode === 'show') {
             // Using Unicode non-breaking spaces (U+00A0) for better spacing visibility
-            this.temperatureElement.textContent = `${this.currentTemperature}°\u00A0\u00A0\u00A0${this.currentTempHigh}°/${this.currentTempLow}°`;
-            this.temperatureElement.style.display = 'block';
+            const newTemperatureText = `${this.currentTemperature}°\u00A0\u00A0\u00A0${this.currentTempHigh}°/${this.currentTempLow}°`;
+
+            // Handle temperature cross-fade
+            if (fadeEnabled && this.previousTemperatureText !== '' && this.previousTemperatureText !== newTemperatureText) {
+                this.temperatureElementOld.textContent = this.previousTemperatureText;
+                this.temperatureElementOld.style.display = 'block';
+                this.temperatureElementOld.style.opacity = '1';
+                this.temperatureElement.textContent = newTemperatureText;
+                this.temperatureElement.style.display = 'block';
+                this.temperatureElement.style.opacity = '0';
+
+                // Use requestAnimationFrame to ensure initial state is rendered before transition
+                requestAnimationFrame(() => {
+                    this.temperatureElementOld.style.opacity = '0';
+                    this.temperatureElement.style.opacity = '1';
+                });
+            } else {
+                this.temperatureElement.textContent = newTemperatureText;
+                this.temperatureElement.style.display = 'block';
+                this.temperatureElement.style.opacity = '1';
+                this.temperatureElementOld.style.opacity = '0';
+            }
+
+            // Store for next update
+            this.previousTemperatureText = newTemperatureText;
+
             // Background all-segments-on for LCD mode
             // Pattern: 88°   88°/88°  (matching temp, high/low format with all segments visible)
             this.backgroundTemperatureElement.textContent = '88°\u00A0\u00A0\u00A088°/88°';
@@ -1012,8 +1377,10 @@ export class DSEGClock {
         } else {
             this.temperatureElement.textContent = '';
             this.temperatureElement.style.display = 'none';
+            this.temperatureElementOld.style.opacity = '0';
             this.backgroundTemperatureElement.textContent = '';
             this.backgroundTemperatureElement.style.display = 'none';
+            this.previousTemperatureText = '';
         }
     }
 
