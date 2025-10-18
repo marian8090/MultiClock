@@ -1233,6 +1233,11 @@ export class DSEGClock {
             this.backgroundReducedSecondsElement.textContent = ':88';
             this.backgroundReducedSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
             this.backgroundReducedSecondsElement.style.display = 'inline';
+        } else if (secondsMode === 'hideflashdecimal') {
+            // Show decimal point in background for flash-decimal mode
+            this.backgroundClockElement.textContent = '88:88.';
+            this.backgroundClockElement.className = 'dseg-time';
+            this.backgroundReducedSecondsElement.style.display = 'none';
         } else {
             this.backgroundClockElement.textContent = '88:88';
             this.backgroundClockElement.className = 'dseg-time';
