@@ -5,6 +5,9 @@ export class DSEGClock {
         this.timeContainer = null;
         this.weekdayDateElement = null;
         this.temperatureElement = null;
+        this.backgroundClockElement = null;
+        this.backgroundWeekdayDateElement = null;
+        this.backgroundTemperatureElement = null;
         this.updateInterval = null;
         this.temperatureFetchInterval = null;
         this.styleElement = null;
@@ -268,6 +271,7 @@ export class DSEGClock {
                 display: flex;
                 justify-content: center;
                 align-items: baseline;
+                position: relative;
             }
 
             .dseg-time {
@@ -275,6 +279,18 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0.05em;
                 ${renderingCSS.text}
+                position: relative;
+                z-index: 2;
+            }
+
+            .dseg-background {
+                opacity: ${this.currentColor === 7 ? '0.15' : '0'};
+                position: absolute;
+                top: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1;
+                pointer-events: none;
             }
 
             .dseg-time-minus20-seconds {
@@ -315,6 +331,8 @@ export class DSEGClock {
                 word-wrap: break-word;
                 line-height: 1.3;
                 ${renderingCSS.text}
+                position: relative;
+                z-index: 2;
             }
 
             .dseg-temperature {
@@ -325,6 +343,8 @@ export class DSEGClock {
                 text-align: center;
                 margin-top: 0.3em;
                 ${renderingCSS.text}
+                position: relative;
+                z-index: 2;
             }
 
             .parameter-display {
@@ -484,19 +504,34 @@ export class DSEGClock {
         this.timeContainer = document.createElement('div');
         this.timeContainer.className = 'dseg-time-container';
 
+        // Create background inactive segments layer (for LCD mode)
+        this.backgroundClockElement = document.createElement('span');
+        this.backgroundClockElement.className = 'dseg-time dseg-background';
+
         this.clockElement = document.createElement('span');
         this.clockElement.className = 'dseg-time';
 
+        this.timeContainer.appendChild(this.backgroundClockElement);
         this.timeContainer.appendChild(this.clockElement);
+
+        // Create background for weekday/date
+        this.backgroundWeekdayDateElement = document.createElement('div');
+        this.backgroundWeekdayDateElement.className = 'dseg-weekday-date dseg-background';
 
         this.weekdayDateElement = document.createElement('div');
         this.weekdayDateElement.className = 'dseg-weekday-date';
+
+        // Create background for temperature
+        this.backgroundTemperatureElement = document.createElement('div');
+        this.backgroundTemperatureElement.className = 'dseg-temperature dseg-background';
 
         this.temperatureElement = document.createElement('div');
         this.temperatureElement.className = 'dseg-temperature';
 
         display.appendChild(this.timeContainer);
+        display.appendChild(this.backgroundWeekdayDateElement);
         display.appendChild(this.weekdayDateElement);
+        display.appendChild(this.backgroundTemperatureElement);
         display.appendChild(this.temperatureElement);
         clockContainer.appendChild(display);
 
@@ -761,6 +796,8 @@ export class DSEGClock {
         if (secondsMode === 'show') {
             // Show seconds at regular size
             this.clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+            // Background inactive segments for LCD mode
+            this.backgroundClockElement.textContent = '!!:!!:!!';
         } else if (secondsMode === 'minus20' || secondsMode === 'minus30' || secondsMode === 'minus40' || secondsMode === 'minus50') {
             // Show main time without seconds
             this.clockElement.textContent = `${hours}:${minutes}`;
@@ -770,12 +807,17 @@ export class DSEGClock {
             percentSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
             percentSecondsElement.textContent = `:${seconds}`;
             this.timeContainer.appendChild(percentSecondsElement);
+
+            // Background inactive segments for LCD mode
+            this.backgroundClockElement.textContent = '!!:!!:!!';
         } else {
             // Hide seconds, but blink colon at 1Hz
             const secondsNum = now.getSeconds();
             this.colonVisible = (secondsNum % 2 === 0);
             const separator = this.colonVisible ? ':' : ' ';
             this.clockElement.textContent = `${hours}${separator}${minutes}`;
+            // Background inactive segments for LCD mode
+            this.backgroundClockElement.textContent = '!!:!!';
         }
 
         // Weekday and date display
@@ -791,9 +833,16 @@ export class DSEGClock {
         if (weekdayMode === 'show') {
             this.weekdayDateElement.textContent = `${weekdayString}  ${dateString}`;
             this.weekdayDateElement.style.display = 'block';
+            // Background inactive segments for LCD mode - match weekday length
+            const bgWeekday = '!'.repeat(weekdayString.length);
+            this.backgroundWeekdayDateElement.textContent = `${bgWeekday}  !!.!!.!!!!`;
+            this.backgroundWeekdayDateElement.style.display = 'block';
         } else {
             this.weekdayDateElement.textContent = dateString;
             this.weekdayDateElement.style.display = 'block';
+            // Background inactive segments for LCD mode
+            this.backgroundWeekdayDateElement.textContent = '!!.!!.!!!!';
+            this.backgroundWeekdayDateElement.style.display = 'block';
         }
     }
 
@@ -844,9 +893,15 @@ export class DSEGClock {
             // Using Unicode non-breaking spaces (U+00A0) for better spacing visibility
             this.temperatureElement.textContent = `${this.currentTemperature}°\u00A0\u00A0\u00A0${this.currentTempHigh}°/${this.currentTempLow}°`;
             this.temperatureElement.style.display = 'block';
+            // Background inactive segments for LCD mode
+            // Pattern: !!°   !!°/!!°  (matching temp, high/low format)
+            this.backgroundTemperatureElement.textContent = '!!°\u00A0\u00A0\u00A0!!°/!!°';
+            this.backgroundTemperatureElement.style.display = 'block';
         } else {
             this.temperatureElement.textContent = '';
             this.temperatureElement.style.display = 'none';
+            this.backgroundTemperatureElement.textContent = '';
+            this.backgroundTemperatureElement.style.display = 'none';
         }
     }
 
