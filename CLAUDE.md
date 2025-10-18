@@ -31,12 +31,22 @@ The application uses a modular ES6 module system with a robust parameter managem
    - **Rendering Modes**: Smooth, Crisp (sharp edges), Pixelated (pixel-perfect)
    - **Ratio**: 20:14 time-to-date size ratio for optimal readability
 
-3. **7-Segment LED Clock** (`clocks/3_7segment-led.js`):
-   - CSS-generated authentic 7-segment LED display simulation
-   - **Parameters**: FONTSIZE (20%-500%), FONT COLOUR (7 colors), RENDERER (3 modes)
-   - **Features**: Realistic LED module spacing, integrated colons/dots, pixel-perfect rendering options
-   - **Default**: Green color for authentic LED appearance
-   - **Ratio**: 20:14 time-to-date size ratio
+3. **DSEG Clock** (`clocks/3_dseg-clock.js`):
+   - Professional 7/14-segment display using DSEG font family
+   - **Fonts**: DSEG7 (numeric) for time/date/temperature, DSEG14 (alphanumeric) for weekday
+   - **Font Types**: Classic and Modern variants
+   - **Parameters**: CLOCK MODEL, FONT (Classic/Modern), STYLE (6 weight variants), TIME FONTSIZE (36pt-400pt), DATE FONTSIZE (36pt-400pt), FONT COLOUR (8 colors including LCD), RENDERER (3 modes), SECONDS (Show/5 reduced sizes/Hide), WEEKDAY (Show/Hide), TEMPERATURE (Show/Hide), BG OPACITY (Off/5%-50%)
+   - **Style Variants**: Light, Light Italic, Regular, Italic (default), Bold, Bold Italic
+   - **Font Sizes**: 44 sizes from 36pt to 400pt with fine-grained control
+   - **Color Schemes**: 8 options including special LCD mode with greenish-yellow background and LCD texture
+   - **Seconds Display**: Show full-size, Show at -20%/-30%/-40%/-50% size, or Hide with blinking colon
+   - **Background Segments**: Adjustable opacity (Off, 5%-50% in 5% increments) showing inactive "88" segments for all color schemes
+   - **Temperature Display**: Current temp, high/low for Stevenage, UK via Open-Meteo API (updates every 10 minutes)
+   - **Weekday Display**: Full day names (Sunday-Saturday) using DSEG14 fonts
+   - **Default**: Classic font, Italic style, White color, 72pt time, 48pt date, background off, seconds shown, weekday shown, temperature hidden
+   - **Font Loading**: Dynamic loading of 24 font variants (12 DSEG7 + 12 DSEG14) via @font-face
+   - **Independent Sizing**: Time and date font sizes fully independent with MS Word-like point sizes
+   - **Persistent Elements**: Uses visibility toggling instead of DOM manipulation to prevent text movement
 
 4. **Slim Analog Clock** (`clocks/4_aviation-clock.js`):
    - Aviation-style slim analog clock with PixiJS rendering
@@ -44,18 +54,7 @@ The application uses a modular ES6 module system with a robust parameter managem
    - **Parameters**: SIZE (20%-300%), COLOR variations
    - 8 FPS update rate for smooth animation
 
-5. **DSEG Clock** (`clocks/5_dseg-clock.js`):
-   - Professional 7/14-segment display using DSEG font family
-   - **Fonts**: DSEG7 (numeric) for time/date, DSEG14 (alphanumeric) for weekday
-   - **Font Types**: Classic and Modern variants
-   - **Parameters**: FONT (Classic/Modern), STYLE (6 weight variants), TIME FONTSIZE (8pt-288pt), DATE FONTSIZE (8pt-288pt), FONT COLOUR (7 colors), RENDERER (3 modes), SECONDS (Show/Hide), WEEKDAY (Show/Hide)
-   - **Style Variants**: Light, Light Italic, Regular, Italic (default), Bold, Bold Italic
-   - **Font Sizes**: 20 sizes from 8pt to 288pt (8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 26, 28, 36, 48, 72, 96, 144, 200, 288)
-   - **Default**: White color, Italic style, 72pt time, 48pt date, seconds shown, weekday shown
-   - **Weekday Display**: Full day names (Sunday-Saturday) using DSEG14 fonts, positioned between time and date
-   - **Seconds Options**: Show HH:MM:SS or hide with blinking colon at 1Hz
-   - **Font Loading**: Dynamic loading of 24 font variants (12 DSEG7 + 12 DSEG14) via @font-face
-   - **Independent Sizing**: Time and date font sizes fully independent with MS Word-like point sizes
+5. **DSEG Clock (Alternate)** - Note: This is the same as Clock 3 above, both use `clocks/3_dseg-clock.js`
 
 ### User Controls
 
@@ -91,13 +90,15 @@ Each clock implements a standardized parameter interface:
 - **Color Variants**: Main color with mathematically calculated darker accents (60% intensity)
 - **Consistent Borders**: Black outlines on all hands for optimal contrast
 
-#### DSEG Font System (Clock 5)
-- **DSEG7 Fonts**: Professional 7-segment display fonts with Classic and Modern variants
+#### DSEG Font System (Clock 3)
+- **DSEG7 Fonts**: Professional 7-segment display fonts with Classic and Modern variants for numeric display
+- **DSEG14 Fonts**: 14-segment alphanumeric fonts for weekday names
 - **Weight Options**: 6 style variants (Light, Light Italic, Regular, Italic, Bold, Bold Italic)
-- **Font Path**: `fonts/fonts-DSEG_v046/DSEG7-{Classic|Modern}/`
-- **Dynamic Loading**: All 12 variants loaded via @font-face, switched dynamically based on parameters
-- **DSEG14 Available**: 14-segment fonts included for future alphanumeric extensions
+- **Font Path**: `fonts/fonts-DSEG_v046/DSEG7-{Classic|Modern}/` and `DSEG14-{Classic|Modern}/`
+- **Dynamic Loading**: All 24 variants loaded via @font-face, switched dynamically based on parameters
 - **Format Support**: TTF, WOFF, and WOFF2 formats included for broad compatibility
+- **Background Segments**: "88" pattern shows all inactive segments at adjustable opacity (Off to 50%)
+- **Temperature Integration**: Weather data fetched from Open-Meteo API for Stevenage, UK
 
 #### Settings Persistence
 - **LocalStorage Backend**: All user preferences saved to browser's localStorage
@@ -108,9 +109,8 @@ Each clock implements a standardized parameter interface:
 - **Settings Saved**:
   - Clock 1: Size, Color
   - Clock 2: Font, Font Size, Color, Renderer
-  - Clock 3: Font Size, Color, Renderer
+  - Clock 3 (DSEG): Font Type, Font Style, Time Font Size, Date Font Size, Color, Renderer, Seconds Display, Weekday Display, Temperature Display, Background Opacity
   - Clock 4: Size, Color, Seconds Hand Mode
-  - Clock 5: Font Type, Font Style, Time Font Size, Date Font Size, Color, Renderer, Seconds Display, Weekday Display
 - **Storage Keys**: Prefixed with `multiclock_` to avoid conflicts
 - **Last Clock**: Last viewed clock automatically restored on page load
 
@@ -200,8 +200,7 @@ changeParameterLeft() {
 
 - **Analog Clocks (1 & 4)**: 8 FPS, PixiJS with WebGL/Canvas rendering, responsive scaling
 - **Digital Clock (2)**: 1 second updates, CSS-based with font smoothing control
-- **7-Segment LED (3)**: 1 second updates, pure CSS segments with realistic spacing
-- **DSEG Clock (5)**: 1 second updates, DSEG7 font variants with dynamic loading
+- **DSEG Clock (3)**: 1 second updates, DSEG7/DSEG14 font variants with dynamic loading, weather API integration
 - **Fonts**: Custom TTF fonts + system font fallbacks for cross-platform compatibility
 - **Resolution**: Auto-scaling with pixel-perfect options for crisp rendering
 - **Responsive**: All clocks support fullscreen and window resizing
@@ -214,9 +213,9 @@ MultiClock/
 ├── clocks/
 │   ├── 1_analog-clock.js               # PixiJS analog clock with color system
 │   ├── 2_digital-clock.js              # CSS digital clock with fonts & rendering
-│   ├── 3_7segment-led.js               # 7-segment LED display simulation
-│   ├── 4_aviation-clock.js             # Slim aviation-style analog clock
-│   └── 5_dseg-clock.js                 # DSEG 7-segment font clock
+│   ├── 3_dseg-clock.js                 # DSEG 7/14-segment display with weather
+│   ├── 4_analog-clock.js               # Slim aviation-style analog clock
+│   └── DSEG LED background.png         # LCD background texture for Clock 3
 ├── fonts/
 │   ├── PMDG_NG3_DU_A.ttf              # Aviation-style digital font
 │   ├── AppleII-PrintChar21.ttf        # Retro computer font
@@ -226,8 +225,8 @@ MultiClock/
 │   └── fonts-DSEG_v046/               # DSEG font family directory
 │       ├── DSEG7-Classic/             # Classic 7-segment variants (6 styles)
 │       ├── DSEG7-Modern/              # Modern 7-segment variants (6 styles)
-│       ├── DSEG14-Classic/            # Classic 14-segment variants (for future use)
-│       └── DSEG14-Modern/             # Modern 14-segment variants (for future use)
+│       ├── DSEG14-Classic/            # Classic 14-segment variants (6 styles for weekday)
+│       └── DSEG14-Modern/             # Modern 14-segment variants (6 styles for weekday)
 └── CLAUDE.md                           # This comprehensive documentation
 ```
 
@@ -246,13 +245,17 @@ MultiClock/
 - **Cache Busting**: HTTP headers and dynamic imports with timestamps for instant code updates
 - **Advanced Color System**: Dynamic accent color calculation with authentic U1 support
 - **Rendering Modes**: User-selectable crisp/pixelated options for optimal display quality
-- **Realistic LED Spacing**: Proper 7-segment module gaps based on hardware standards
 - **System Font Integration**: Cross-platform monospace font support (optimized font list)
 - **Parameter Auto-Hide**: Clean interface with context-sensitive displays
-- **Improved Ratios**: Optimized 20:14 time-to-date proportions for readability
-- **DSEG Font Family**: Professional 7-segment display fonts with 12 variant combinations (Clock 5)
+- **DSEG Font Family**: Professional 7-segment display fonts with 24 variant combinations (Clock 3)
 - **Aviation Clock**: Slim analog clock inspired by aircraft instruments (Clock 4)
 - **Dynamic Font Loading**: Runtime font switching with multiple weight and style options
 - **Debug Logging**: Comprehensive console logging for settings persistence debugging
+- **Background Segments**: Adjustable opacity (Off to 50%) for inactive segment visualization on all color schemes
+- **Weather Integration**: Real-time temperature display with high/low via Open-Meteo API
+- **Persistent Elements**: Text movement fix using visibility toggling instead of DOM manipulation
+- **LCD Mode**: Special greenish-yellow LCD background with texture image for authentic LCD display appearance
+- **Independent Sizing**: Separate font size controls for time and date (36pt-400pt in 44 steps)
+- **Flexible Seconds**: 6 display modes including 4 reduced-size options (-20%/-30%/-40%/-50%)
 
 This architecture provides a solid foundation for adding new clock types while maintaining consistency and quality across the entire application.
