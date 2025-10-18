@@ -283,12 +283,26 @@ export class DSEGClock {
                 z-index: 2;
             }
 
-            .dseg-background {
+            .dseg-time-container .dseg-background {
                 opacity: ${this.currentColor === 7 ? '0.15' : '0'};
                 position: absolute;
                 top: 0;
-                left: 50%;
-                transform: translateX(-50%);
+                left: 0;
+                right: 0;
+                z-index: 1;
+                pointer-events: none;
+                display: flex;
+                justify-content: center;
+                align-items: baseline;
+            }
+
+            .dseg-weekday-date.dseg-background,
+            .dseg-temperature.dseg-background {
+                opacity: ${this.currentColor === 7 ? '0.15' : '0'};
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
                 z-index: 1;
                 pointer-events: none;
             }
@@ -321,6 +335,11 @@ export class DSEGClock {
                 ${renderingCSS.text}
             }
 
+            .dseg-weekday-date-container,
+            .dseg-temperature-container {
+                position: relative;
+            }
+
             .dseg-weekday-date {
                 font-size: ${dateFontSize}vmin;
                 font-weight: normal;
@@ -335,13 +354,16 @@ export class DSEGClock {
                 z-index: 2;
             }
 
+            .dseg-temperature-container {
+                margin-top: 0.3em;
+            }
+
             .dseg-temperature {
                 font-size: ${dateFontSize}vmin;
                 font-weight: normal;
                 letter-spacing: 0.05em;
                 font-family: '${weekdayFontFamily}', monospace;
                 text-align: center;
-                margin-top: 0.3em;
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
@@ -514,25 +536,35 @@ export class DSEGClock {
         this.timeContainer.appendChild(this.backgroundClockElement);
         this.timeContainer.appendChild(this.clockElement);
 
-        // Create background for weekday/date
+        // Create container for weekday/date with background
+        const weekdayDateContainer = document.createElement('div');
+        weekdayDateContainer.className = 'dseg-weekday-date-container';
+
         this.backgroundWeekdayDateElement = document.createElement('div');
         this.backgroundWeekdayDateElement.className = 'dseg-weekday-date dseg-background';
 
         this.weekdayDateElement = document.createElement('div');
         this.weekdayDateElement.className = 'dseg-weekday-date';
 
-        // Create background for temperature
+        weekdayDateContainer.appendChild(this.backgroundWeekdayDateElement);
+        weekdayDateContainer.appendChild(this.weekdayDateElement);
+
+        // Create container for temperature with background
+        const temperatureContainer = document.createElement('div');
+        temperatureContainer.className = 'dseg-temperature-container';
+
         this.backgroundTemperatureElement = document.createElement('div');
         this.backgroundTemperatureElement.className = 'dseg-temperature dseg-background';
 
         this.temperatureElement = document.createElement('div');
         this.temperatureElement.className = 'dseg-temperature';
 
+        temperatureContainer.appendChild(this.backgroundTemperatureElement);
+        temperatureContainer.appendChild(this.temperatureElement);
+
         display.appendChild(this.timeContainer);
-        display.appendChild(this.backgroundWeekdayDateElement);
-        display.appendChild(this.weekdayDateElement);
-        display.appendChild(this.backgroundTemperatureElement);
-        display.appendChild(this.temperatureElement);
+        display.appendChild(weekdayDateContainer);
+        display.appendChild(temperatureContainer);
         clockContainer.appendChild(display);
 
         this.container.appendChild(clockContainer);
