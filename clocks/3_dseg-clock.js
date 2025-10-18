@@ -295,11 +295,12 @@ export class DSEGClock {
             .dseg-time {
                 font-size: ${clockFontSize}vmin;
                 font-weight: normal;
-                letter-spacing: 0.05em;
+                letter-spacing: 0;
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
                 white-space: pre;
+                display: inline-block;
             }
 
             .dseg-time-container .dseg-background {
@@ -332,41 +333,45 @@ export class DSEGClock {
             .dseg-time-minus20-seconds {
                 font-size: ${minus20SecondsFontSize}vmin;
                 font-weight: normal;
-                letter-spacing: 0.05em;
+                letter-spacing: 0;
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
                 white-space: pre;
+                display: inline-block;
             }
 
             .dseg-time-minus30-seconds {
                 font-size: ${minus30SecondsFontSize}vmin;
                 font-weight: normal;
-                letter-spacing: 0.05em;
+                letter-spacing: 0;
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
                 white-space: pre;
+                display: inline-block;
             }
 
             .dseg-time-minus40-seconds {
                 font-size: ${minus40SecondsFontSize}vmin;
                 font-weight: normal;
-                letter-spacing: 0.05em;
+                letter-spacing: 0;
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
                 white-space: pre;
+                display: inline-block;
             }
 
             .dseg-time-minus50-seconds {
                 font-size: ${minus50SecondsFontSize}vmin;
                 font-weight: normal;
-                letter-spacing: 0.05em;
+                letter-spacing: 0;
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
                 white-space: pre;
+                display: inline-block;
             }
 
             .dseg-weekday-date-container,
@@ -377,7 +382,7 @@ export class DSEGClock {
             .dseg-weekday-date {
                 font-size: ${dateFontSize}vmin;
                 font-weight: normal;
-                letter-spacing: 0.05em;
+                letter-spacing: 0;
                 font-family: '${weekdayFontFamily}', monospace;
                 text-align: center;
                 max-width: 90vw;
@@ -387,6 +392,7 @@ export class DSEGClock {
                 position: relative;
                 z-index: 2;
                 white-space: pre;
+                display: inline-block;
             }
 
             .dseg-temperature-container {
@@ -396,13 +402,14 @@ export class DSEGClock {
             .dseg-temperature {
                 font-size: ${dateFontSize}vmin;
                 font-weight: normal;
-                letter-spacing: 0.05em;
+                letter-spacing: 0;
                 font-family: '${weekdayFontFamily}', monospace;
                 text-align: center;
                 ${renderingCSS.text}
                 position: relative;
                 z-index: 2;
                 white-space: pre;
+                display: inline-block;
             }
 
             .parameter-display {
