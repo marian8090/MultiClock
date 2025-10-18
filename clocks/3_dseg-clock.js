@@ -1183,11 +1183,9 @@ export class DSEGClock {
             // 2 Hz = flash on for 0-499ms (first half of second)
             const newColonVisible = (milliseconds < 500);
 
-            // Use reduced seconds element for the flashing colon to enable smooth fading
-            newTimeText = `${hours} ${minutes}`; // Space as placeholder
-            newReducedSecondsText = ':'; // Colon that will fade
-            reducedSecondsClass = 'dseg-time';
-            showReducedSeconds = true;
+            // Show HH:MM with colon that fades via opacity
+            newTimeText = `${hours}:${minutes}`;
+            showReducedSeconds = false;
             this.colonVisible = newColonVisible;
         } else if (secondsMode === 'hideflashdecimal') {
             // OFF-Flash-Decimal: Static colon, decimal point flashes at 2 Hz
@@ -1206,8 +1204,10 @@ export class DSEGClock {
         }
 
         // Handle time element cross-fade
-        if (fadeEnabled && this.previousTimeText !== '' && this.previousTimeText !== newTimeText) {
-            // Content changed - trigger cross-fade
+        const isFlashingColon = (secondsMode === 'hideflashcolon');
+
+        if (fadeEnabled && this.previousTimeText !== '' && this.previousTimeText !== newTimeText && !isFlashingColon) {
+            // Content changed - trigger cross-fade (but not for flashing colon)
             this.clockElementOld.textContent = this.previousTimeText;
             this.clockElementOld.style.opacity = '1';
             this.clockElement.textContent = newTimeText;
@@ -1219,19 +1219,26 @@ export class DSEGClock {
                 this.clockElement.style.opacity = '1';
             });
         } else {
-            // No fade needed - instant update
+            // No fade needed - instant update, or flashing colon mode
             this.clockElement.textContent = newTimeText;
-            this.clockElement.style.opacity = '1';
+
+            // For flashing colon, control opacity based on colonVisible
+            if (isFlashingColon) {
+                this.clockElement.style.opacity = this.colonVisible ? '1' : '0';
+            } else {
+                this.clockElement.style.opacity = '1';
+            }
+
             this.clockElementOld.style.opacity = '0';
         }
 
         // Handle reduced seconds element cross-fade
         if (showReducedSeconds) {
-            // For hideflashdecimal and hideflashcolon modes, control visibility via opacity
-            const isFlashing = (secondsMode === 'hideflashdecimal' || secondsMode === 'hideflashcolon');
+            // For hideflashdecimal mode, control visibility via opacity
+            const isFlashingDecimal = (secondsMode === 'hideflashdecimal');
 
-            if (fadeEnabled && this.previousReducedSecondsText !== '' && this.previousReducedSecondsText !== newReducedSecondsText && !isFlashing) {
-                // Content changed - trigger cross-fade (but not for flashing modes)
+            if (fadeEnabled && this.previousReducedSecondsText !== '' && this.previousReducedSecondsText !== newReducedSecondsText && !isFlashingDecimal) {
+                // Content changed - trigger cross-fade (but not for flashing decimal)
                 this.reducedSecondsElementOld.textContent = this.previousReducedSecondsText;
                 this.reducedSecondsElementOld.className = reducedSecondsClass + '-old';
                 this.reducedSecondsElementOld.style.display = 'inline';
@@ -1247,13 +1254,13 @@ export class DSEGClock {
                     this.reducedSecondsElement.style.opacity = '1';
                 });
             } else {
-                // No fade needed or flashing mode
+                // No fade needed or flashing decimal mode
                 this.reducedSecondsElement.textContent = newReducedSecondsText;
                 this.reducedSecondsElement.className = reducedSecondsClass;
                 this.reducedSecondsElement.style.display = 'inline';
 
-                // For flashing modes, control opacity based on colonVisible
-                if (isFlashing) {
+                // For flashing decimal, control opacity based on colonVisible
+                if (isFlashingDecimal) {
                     this.reducedSecondsElement.style.opacity = this.colonVisible ? '1' : '0';
                 } else {
                     this.reducedSecondsElement.style.opacity = '1';
@@ -1273,18 +1280,16 @@ export class DSEGClock {
             this.backgroundReducedSecondsElement.style.display = 'none';
         } else if (secondsMode === 'hideflashdecimal') {
             // Show decimal point in background for flash-decimal mode
-            this.backgroundClockElement.textContent = '88 88';
+            this.backgroundClockElement.textContent = '88:88';
             this.backgroundClockElement.className = 'dseg-time';
             this.backgroundReducedSecondsElement.textContent = '.';
             this.backgroundReducedSecondsElement.className = 'dseg-time';
             this.backgroundReducedSecondsElement.style.display = 'inline';
         } else if (secondsMode === 'hideflashcolon') {
             // Show colon in background for flash-colon mode
-            this.backgroundClockElement.textContent = '88 88';
+            this.backgroundClockElement.textContent = '88:88';
             this.backgroundClockElement.className = 'dseg-time';
-            this.backgroundReducedSecondsElement.textContent = ':';
-            this.backgroundReducedSecondsElement.className = 'dseg-time';
-            this.backgroundReducedSecondsElement.style.display = 'inline';
+            this.backgroundReducedSecondsElement.style.display = 'none';
         } else if (showReducedSeconds) {
             this.backgroundClockElement.textContent = '88:88';
             this.backgroundClockElement.className = 'dseg-time';
