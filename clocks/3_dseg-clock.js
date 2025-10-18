@@ -1314,7 +1314,8 @@ export class DSEGClock {
 
     startUpdate() {
         this.updateClock();
-        this.updateInterval = setInterval(() => this.updateClock(), 1000);
+        // Update every 100ms (10 times per second) to support 2 Hz flashing
+        this.updateInterval = setInterval(() => this.updateClock(), 100);
     }
 
     async fetchTemperature() {
