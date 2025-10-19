@@ -397,6 +397,7 @@ export class DSEGClock {
                 z-index: 2;
                 white-space: pre;
                 position: relative;
+                display: inline-block;
             }
 
             .dseg-time-old {
@@ -413,6 +414,7 @@ export class DSEGClock {
                 left: 0;
                 right: 0;
                 pointer-events: none;
+                display: inline-block;
             }
 
             .dseg-time-container .dseg-background {
