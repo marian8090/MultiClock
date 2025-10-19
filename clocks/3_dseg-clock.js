@@ -1261,10 +1261,8 @@ export class DSEGClock {
         if (fadeEnabled && this.previousTimeText !== '' && this.previousTimeText !== newTimeText) {
             // Content changed - trigger cross-fade
             this.clockElementOld.textContent = this.previousTimeText;
-            this.clockElementOld.style.display = 'inline';
             this.clockElementOld.style.opacity = '1';
             this.clockElement.textContent = newTimeText;
-            this.clockElement.style.display = 'inline';
             this.clockElement.style.opacity = '0';
 
             // Use requestAnimationFrame to ensure initial state is rendered before transition
@@ -1277,7 +1275,6 @@ export class DSEGClock {
             // This prevents interrupting ongoing CSS transitions
             if (this.clockElement.textContent !== newTimeText) {
                 this.clockElement.textContent = newTimeText;
-                this.clockElement.style.display = 'inline';
                 this.clockElement.style.opacity = '1';
                 this.clockElementOld.style.opacity = '0';
             }
