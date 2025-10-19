@@ -55,6 +55,11 @@ export class DSEGClock {
             { name: 'Magenta', value: '#ff00ff' },
             { name: 'Cyan', value: '#00ffff' },
             { name: 'White', value: '#ffffff' },
+            { name: 'NIXIE-warm', value: '#ff5f1f' },
+            { name: 'NIXIE-deep', value: '#ff4e11' },
+            { name: 'NIXIE-classic', value: '#ff3c00' },
+            { name: 'VFD-classic', value: '#66fcf1' },
+            { name: 'VFD-soft', value: '#40e0d0' },
             { name: 'LCD', value: '#000000', background: '#949F53' }
         ];
 
