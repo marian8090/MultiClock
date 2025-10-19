@@ -163,15 +163,9 @@ export class DSEGClock {
     init(container, savedSettings = null) {
         this.container = container;
 
-        console.log('[DSEGClock] init() called with savedSettings:', savedSettings);
-
         // Load saved settings if available
         if (savedSettings) {
-            console.log('[DSEGClock] Calling loadSettings() with:', savedSettings);
             this.loadSettings(savedSettings);
-            console.log('[DSEGClock] After loadSettings() - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentFontSizeMultiplier:', this.currentFontSizeMultiplier, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode);
-        } else {
-            console.log('[DSEGClock] No saved settings, using defaults');
         }
 
         this.createStyles();
@@ -183,7 +177,7 @@ export class DSEGClock {
 
     // Get current settings for persistence
     getSettings() {
-        const settings = {
+        return {
             currentFontType: this.currentFontType,
             currentFontStyle: this.currentFontStyle,
             currentTimeFontSizeIndex: this.currentTimeFontSizeIndex,
@@ -197,64 +191,46 @@ export class DSEGClock {
             currentGlowLevel: this.currentGlowLevel,
             currentLineSpacing: this.currentLineSpacing
         };
-        console.log('[DSEGClock] getSettings() returning:', settings);
-        return settings;
     }
 
     // Load settings from saved data
     loadSettings(settings) {
-        console.log('[DSEGClock] loadSettings() called with:', settings);
-
         if (settings.currentFontType !== undefined && settings.currentFontType >= 0 && settings.currentFontType < this.fontTypes.length) {
-            console.log('[DSEGClock] Setting currentFontType to:', settings.currentFontType);
             this.currentFontType = settings.currentFontType;
         }
         if (settings.currentFontStyle !== undefined && settings.currentFontStyle >= 0 && settings.currentFontStyle < this.fontStyles.length) {
-            console.log('[DSEGClock] Setting currentFontStyle to:', settings.currentFontStyle);
             this.currentFontStyle = settings.currentFontStyle;
         }
         if (settings.currentTimeFontSizeIndex !== undefined && settings.currentTimeFontSizeIndex >= 0 && settings.currentTimeFontSizeIndex < this.timeFontSizes.length) {
-            console.log('[DSEGClock] Setting currentTimeFontSizeIndex to:', settings.currentTimeFontSizeIndex);
             this.currentTimeFontSizeIndex = settings.currentTimeFontSizeIndex;
         }
         if (settings.currentDateFontSizeIndex !== undefined && settings.currentDateFontSizeIndex >= 0 && settings.currentDateFontSizeIndex < this.dateFontSizes.length) {
-            console.log('[DSEGClock] Setting currentDateFontSizeIndex to:', settings.currentDateFontSizeIndex);
             this.currentDateFontSizeIndex = settings.currentDateFontSizeIndex;
         }
         if (settings.currentColor !== undefined && settings.currentColor >= 0 && settings.currentColor < this.colors.length) {
-            console.log('[DSEGClock] Setting currentColor to:', settings.currentColor);
             this.currentColor = settings.currentColor;
         }
         if (settings.currentRenderMode !== undefined && settings.currentRenderMode >= 0 && settings.currentRenderMode < this.renderModes.length) {
-            console.log('[DSEGClock] Setting currentRenderMode to:', settings.currentRenderMode);
             this.currentRenderMode = settings.currentRenderMode;
         }
         if (settings.currentSecondsDisplay !== undefined && settings.currentSecondsDisplay >= 0 && settings.currentSecondsDisplay < this.secondsDisplayModes.length) {
-            console.log('[DSEGClock] Setting currentSecondsDisplay to:', settings.currentSecondsDisplay);
             this.currentSecondsDisplay = settings.currentSecondsDisplay;
         }
         if (settings.currentWeekdayDisplay !== undefined && settings.currentWeekdayDisplay >= 0 && settings.currentWeekdayDisplay < this.weekdayDisplayModes.length) {
-            console.log('[DSEGClock] Setting currentWeekdayDisplay to:', settings.currentWeekdayDisplay);
             this.currentWeekdayDisplay = settings.currentWeekdayDisplay;
         }
         if (settings.currentTemperatureDisplay !== undefined && settings.currentTemperatureDisplay >= 0 && settings.currentTemperatureDisplay < this.temperatureDisplayModes.length) {
-            console.log('[DSEGClock] Setting currentTemperatureDisplay to:', settings.currentTemperatureDisplay);
             this.currentTemperatureDisplay = settings.currentTemperatureDisplay;
         }
         if (settings.currentBackgroundOpacity !== undefined && settings.currentBackgroundOpacity >= 0 && settings.currentBackgroundOpacity < this.backgroundOpacities.length) {
-            console.log('[DSEGClock] Setting currentBackgroundOpacity to:', settings.currentBackgroundOpacity);
             this.currentBackgroundOpacity = settings.currentBackgroundOpacity;
         }
         if (settings.currentGlowLevel !== undefined && settings.currentGlowLevel >= 0 && settings.currentGlowLevel < this.glowLevels.length) {
-            console.log('[DSEGClock] Setting currentGlowLevel to:', settings.currentGlowLevel);
             this.currentGlowLevel = settings.currentGlowLevel;
         }
         if (settings.currentLineSpacing !== undefined && settings.currentLineSpacing >= 0 && settings.currentLineSpacing < this.lineSpacings.length) {
-            console.log('[DSEGClock] Setting currentLineSpacing to:', settings.currentLineSpacing);
             this.currentLineSpacing = settings.currentLineSpacing;
         }
-
-        console.log('[DSEGClock] loadSettings() complete. Final values - currentFontType:', this.currentFontType, 'currentFontStyle:', this.currentFontStyle, 'currentTimeFontSizeIndex:', this.currentTimeFontSizeIndex, 'currentDateFontSizeIndex:', this.currentDateFontSizeIndex, 'currentColor:', this.currentColor, 'currentRenderMode:', this.currentRenderMode, 'currentSecondsDisplay:', this.currentSecondsDisplay, 'currentWeekdayDisplay:', this.currentWeekdayDisplay, 'currentTemperatureDisplay:', this.currentTemperatureDisplay, 'currentBackgroundOpacity:', this.currentBackgroundOpacity, 'currentGlowLevel:', this.currentGlowLevel, 'currentLineSpacing:', this.currentLineSpacing);
     }
 
     // Save current settings
