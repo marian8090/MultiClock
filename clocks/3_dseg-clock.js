@@ -3,9 +3,12 @@ export class DSEGClock {
         this.container = null;
         this.clockElement = null;
         this.clockElementOld = null; // For fade transitions
+        this.colonElement = null; // Separate colon element for flashing colon mode
+        this.colonElementOld = null; // For fade transitions
         this.reducedSecondsElement = null;
         this.reducedSecondsElementOld = null; // For fade transitions
         this.backgroundReducedSecondsElement = null;
+        this.backgroundColonElement = null; // Background colon for LCD mode
         this.timeContainer = null;
         this.timeWrapper = null;
         this.backgroundTimeContainer = null;
@@ -408,6 +411,7 @@ export class DSEGClock {
                 position: absolute;
                 top: 0;
                 left: 0;
+                right: 0;
                 pointer-events: none;
             }
 
@@ -539,6 +543,35 @@ export class DSEGClock {
                 top: 0;
                 left: 0;
                 pointer-events: none;
+            }
+
+            .dseg-colon {
+                font-size: ${clockFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0;
+                ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
+                z-index: 2;
+                white-space: pre;
+                position: relative;
+                display: inline;
+            }
+
+            .dseg-colon-old {
+                font-size: ${clockFontSize}vmin;
+                font-weight: normal;
+                letter-spacing: 0;
+                ${renderingCSS.text}
+                ${transitionCSS}
+                ${glowCSS}
+                z-index: 3;
+                white-space: pre;
+                position: absolute;
+                top: 0;
+                left: 0;
+                pointer-events: none;
+                display: inline;
             }
 
             .dseg-weekday-date-container,
@@ -811,11 +844,28 @@ export class DSEGClock {
         this.backgroundReducedSecondsElement = document.createElement('span');
         this.backgroundReducedSecondsElement.style.display = 'none';
 
+        // Create colon elements for flash-colon mode (initially hidden)
+        this.colonElement = document.createElement('span');
+        this.colonElement.className = 'dseg-colon';
+        this.colonElement.style.display = 'none';
+
+        this.colonElementOld = document.createElement('span');
+        this.colonElementOld.className = 'dseg-colon-old';
+        this.colonElementOld.style.display = 'none';
+        this.colonElementOld.style.opacity = '0';
+
+        this.backgroundColonElement = document.createElement('span');
+        this.backgroundColonElement.className = 'dseg-colon';
+        this.backgroundColonElement.style.display = 'none';
+
         this.timeWrapper.appendChild(this.backgroundTimeContainer);
         this.timeWrapper.appendChild(this.clockElement);
         this.timeWrapper.appendChild(this.clockElementOld);
+        this.timeWrapper.appendChild(this.colonElement);
+        this.timeWrapper.appendChild(this.colonElementOld);
         this.timeWrapper.appendChild(this.reducedSecondsElement);
         this.timeWrapper.appendChild(this.reducedSecondsElementOld);
+        this.backgroundTimeContainer.appendChild(this.backgroundColonElement);
         this.backgroundTimeContainer.appendChild(this.backgroundReducedSecondsElement);
         this.timeContainer.appendChild(this.timeWrapper);
 
@@ -1183,7 +1233,7 @@ export class DSEGClock {
             // 2 Hz = flash on for 0-499ms (first half of second)
             const newColonVisible = (milliseconds < 500);
 
-            // Show HH:MM with colon that fades via opacity
+            // Show HH:MM with colon that will fade independently
             newTimeText = `${hours}:${minutes}`;
             showReducedSeconds = false;
             this.colonVisible = newColonVisible;
@@ -1206,11 +1256,13 @@ export class DSEGClock {
         // Handle time element cross-fade
         const isFlashingColon = (secondsMode === 'hideflashcolon');
 
-        if (fadeEnabled && this.previousTimeText !== '' && this.previousTimeText !== newTimeText && !isFlashingColon) {
-            // Content changed - trigger cross-fade (but not for flashing colon)
+        if (fadeEnabled && this.previousTimeText !== '' && this.previousTimeText !== newTimeText) {
+            // Content changed - trigger cross-fade
             this.clockElementOld.textContent = this.previousTimeText;
+            this.clockElementOld.style.display = 'inline';
             this.clockElementOld.style.opacity = '1';
             this.clockElement.textContent = newTimeText;
+            this.clockElement.style.display = 'inline';
             this.clockElement.style.opacity = '0';
 
             // Use requestAnimationFrame to ensure initial state is rendered before transition
@@ -1219,17 +1271,42 @@ export class DSEGClock {
                 this.clockElement.style.opacity = '1';
             });
         } else {
-            // No fade needed - instant update, or flashing colon mode
-            this.clockElement.textContent = newTimeText;
-
-            // For flashing colon, control opacity based on colonVisible
-            if (isFlashingColon) {
-                this.clockElement.style.opacity = this.colonVisible ? '1' : '0';
-            } else {
+            // Only update if content actually changed (even without fade)
+            // This prevents interrupting ongoing CSS transitions
+            if (this.clockElement.textContent !== newTimeText) {
+                this.clockElement.textContent = newTimeText;
+                this.clockElement.style.display = 'inline';
                 this.clockElement.style.opacity = '1';
+                this.clockElementOld.style.opacity = '0';
             }
+        }
 
-            this.clockElementOld.style.opacity = '0';
+        // Handle colon overlay for flashing colon mode
+        // The clockElement shows "HH:MM" always at full opacity
+        // The colonElement overlays just the colon character with black when hidden
+        if (isFlashingColon) {
+            // Position colon element to overlay the actual colon in HH:MM
+            this.colonElement.textContent = ':';
+            this.colonElement.style.display = 'inline-block';
+            this.colonElement.style.position = 'absolute';
+            this.colonElement.style.left = '2ch'; // Position after "HH" (2 characters)
+
+            // Control colon visibility by overlaying with background color
+            if (fadeEnabled) {
+                // Fade between visible and hidden by controlling opacity of overlay
+                this.colonElement.style.opacity = this.colonVisible ? '0' : '1';  // Inverted: 0 = show real colon, 1 = hide with overlay
+                // Make the colon element the background color to hide the real colon
+                const bgColor = this.colors[this.currentColor].background || '#000000';
+                this.colonElement.style.color = bgColor;
+            } else {
+                // Instant toggle
+                this.colonElement.style.opacity = this.colonVisible ? '0' : '1';
+                const bgColor = this.colors[this.currentColor].background || '#000000';
+                this.colonElement.style.color = bgColor;
+            }
+        } else {
+            this.colonElement.style.display = 'none';
+            this.colonElementOld.style.display = 'none';
         }
 
         // Handle reduced seconds element cross-fade
@@ -1277,28 +1354,33 @@ export class DSEGClock {
         if (secondsMode === 'show') {
             this.backgroundClockElement.textContent = '88:88:88';
             this.backgroundClockElement.className = 'dseg-time';
+            this.backgroundColonElement.style.display = 'none';
             this.backgroundReducedSecondsElement.style.display = 'none';
         } else if (secondsMode === 'hideflashdecimal') {
             // Show decimal point in background for flash-decimal mode
             this.backgroundClockElement.textContent = '88:88';
             this.backgroundClockElement.className = 'dseg-time';
+            this.backgroundColonElement.style.display = 'none';
             this.backgroundReducedSecondsElement.textContent = '.';
             this.backgroundReducedSecondsElement.className = 'dseg-time';
             this.backgroundReducedSecondsElement.style.display = 'inline';
         } else if (secondsMode === 'hideflashcolon') {
-            // Show colon in background for flash-colon mode
+            // Show full 88:88 in background for flash-colon mode
             this.backgroundClockElement.textContent = '88:88';
             this.backgroundClockElement.className = 'dseg-time';
+            this.backgroundColonElement.style.display = 'none';
             this.backgroundReducedSecondsElement.style.display = 'none';
         } else if (showReducedSeconds) {
             this.backgroundClockElement.textContent = '88:88';
             this.backgroundClockElement.className = 'dseg-time';
+            this.backgroundColonElement.style.display = 'none';
             this.backgroundReducedSecondsElement.textContent = ':88';
             this.backgroundReducedSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
             this.backgroundReducedSecondsElement.style.display = 'inline';
         } else {
             this.backgroundClockElement.textContent = '88:88';
             this.backgroundClockElement.className = 'dseg-time';
+            this.backgroundColonElement.style.display = 'none';
             this.backgroundReducedSecondsElement.style.display = 'none';
         }
 
