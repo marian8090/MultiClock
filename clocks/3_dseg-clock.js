@@ -317,7 +317,7 @@ export class DSEGClock {
                 width: 100vw;
                 height: 100vh;
                 background-color: ${backgroundColor};
-                ${this.currentColor === 7 ? "background-image: url('clocks/DSEG LED background.png'); background-size: cover; background-position: center;" : ''}
+                ${currentColorObj.background ? "background-image: url('clocks/DSEG LED background.png'); background-size: cover; background-position: center;" : ''}
                 color: ${currentColor};
                 font-family: '${fontFamily}', monospace;
                 overflow: hidden;
