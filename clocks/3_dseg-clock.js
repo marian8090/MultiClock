@@ -1,4 +1,13 @@
 export class DSEGClock {
+    // Constants for font size calculations
+    static PT_TO_VMIN = 0.13889; // 1pt ≈ 0.13889vmin
+    static SECONDS_SIZE_REDUCTIONS = {
+        minus20: 0.8,  // -20%
+        minus30: 0.7,  // -30%
+        minus40: 0.6,  // -40%
+        minus50: 0.5   // -50%
+    };
+
     constructor() {
         this.container = null;
         this.clockElement = null;
@@ -115,8 +124,8 @@ export class DSEGClock {
         ];
 
         // Available font sizes (in points, like MS Word) - 36 to 400 with finer steps
-        this.timeFontSizes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 320, 340, 360, 380, 400];
-        this.dateFontSizes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 320, 340, 360, 380, 400];
+        // Used for both time and date font sizes
+        this.fontSizes = [36, 40, 44, 48, 52, 56, 60, 64, 68, 72, 76, 80, 84, 88, 92, 96, 100, 108, 116, 124, 132, 140, 148, 156, 164, 172, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 320, 340, 360, 380, 400];
 
         // Available line spacing options
         this.lineSpacings = [
@@ -201,10 +210,10 @@ export class DSEGClock {
         if (settings.currentFontStyle !== undefined && settings.currentFontStyle >= 0 && settings.currentFontStyle < this.fontStyles.length) {
             this.currentFontStyle = settings.currentFontStyle;
         }
-        if (settings.currentTimeFontSizeIndex !== undefined && settings.currentTimeFontSizeIndex >= 0 && settings.currentTimeFontSizeIndex < this.timeFontSizes.length) {
+        if (settings.currentTimeFontSizeIndex !== undefined && settings.currentTimeFontSizeIndex >= 0 && settings.currentTimeFontSizeIndex < this.fontSizes.length) {
             this.currentTimeFontSizeIndex = settings.currentTimeFontSizeIndex;
         }
-        if (settings.currentDateFontSizeIndex !== undefined && settings.currentDateFontSizeIndex >= 0 && settings.currentDateFontSizeIndex < this.dateFontSizes.length) {
+        if (settings.currentDateFontSizeIndex !== undefined && settings.currentDateFontSizeIndex >= 0 && settings.currentDateFontSizeIndex < this.fontSizes.length) {
             this.currentDateFontSizeIndex = settings.currentDateFontSizeIndex;
         }
         if (settings.currentColor !== undefined && settings.currentColor >= 0 && settings.currentColor < this.colors.length) {
@@ -255,17 +264,17 @@ export class DSEGClock {
         const backgroundColor = currentColorObj.background || '#000000'; // Use LCD background if available, otherwise black
         const renderMode = this.renderModes[this.currentRenderMode].value;
 
-        // Convert point sizes to vmin (1pt ≈ 0.13889vmin)
-        let clockFontSize = this.timeFontSizes[this.currentTimeFontSizeIndex] * 0.13889;
-        let dateFontSize = this.dateFontSizes[this.currentDateFontSizeIndex] * 0.13889;
+        // Convert point sizes to vmin using constant
+        let clockFontSize = this.fontSizes[this.currentTimeFontSizeIndex] * DSEGClock.PT_TO_VMIN;
+        let dateFontSize = this.fontSizes[this.currentDateFontSizeIndex] * DSEGClock.PT_TO_VMIN;
         let weekdayFontSize = dateFontSize; // Same size as date
 
-        // Calculate percentage-reduced seconds font sizes
-        const baseTimeFontSize = this.timeFontSizes[this.currentTimeFontSizeIndex] * 0.13889;
-        let minus20SecondsFontSize = baseTimeFontSize * 0.8;  // -20%
-        let minus30SecondsFontSize = baseTimeFontSize * 0.7;  // -30%
-        let minus40SecondsFontSize = baseTimeFontSize * 0.6;  // -40%
-        let minus50SecondsFontSize = baseTimeFontSize * 0.5;  // -50%
+        // Calculate percentage-reduced seconds font sizes using constants
+        const baseTimeFontSize = this.fontSizes[this.currentTimeFontSizeIndex] * DSEGClock.PT_TO_VMIN;
+        let minus20SecondsFontSize = baseTimeFontSize * DSEGClock.SECONDS_SIZE_REDUCTIONS.minus20;
+        let minus30SecondsFontSize = baseTimeFontSize * DSEGClock.SECONDS_SIZE_REDUCTIONS.minus30;
+        let minus40SecondsFontSize = baseTimeFontSize * DSEGClock.SECONDS_SIZE_REDUCTIONS.minus40;
+        let minus50SecondsFontSize = baseTimeFontSize * DSEGClock.SECONDS_SIZE_REDUCTIONS.minus50;
 
         // Apply pixel-perfect rounding for crisp and pixelated modes
         if (renderMode === 'crisp' || renderMode === 'pixelated') {
@@ -768,9 +777,9 @@ export class DSEGClock {
             case 'STYLE':
                 return this.fontStyles.map(f => f.name);
             case 'TIME FONTSIZE':
-                return this.timeFontSizes.map(s => s.toString());
+                return this.fontSizes.map(s => s.toString());
             case 'DATE FONTSIZE':
-                return this.dateFontSizes.map(s => s.toString());
+                return this.fontSizes.map(s => s.toString());
             case 'LINE SPACING':
                 return this.lineSpacings.map(l => l.name);
             case 'FONT COLOUR':
@@ -841,132 +850,58 @@ export class DSEGClock {
         this.updateParameterDisplay();
     }
 
-    changeParameterLeft() {
+    // Helper method to change parameter value by a given direction (-1 or +1)
+    changeParameter(direction) {
         const parameter = this.parameters[this.currentParameterIndex];
 
-        switch (parameter) {
-            case 'CLOCK MODEL':
-                // Switch to previous clock
-                if (this.multiClockInstance) {
-                    const numClocks = this.multiClockInstance.clocks.length;
-                    const newIndex = (this.multiClockInstance.currentClockIndex - 1 + numClocks) % numClocks;
-                    this.multiClockInstance.switchToClock(newIndex);
-                }
-                return; // Don't save settings or show value (clock is switching)
-            case 'FONT':
-                this.currentFontType = (this.currentFontType - 1 + this.fontTypes.length) % this.fontTypes.length;
-                this.updateStyles();
-                break;
-            case 'STYLE':
-                this.currentFontStyle = (this.currentFontStyle - 1 + this.fontStyles.length) % this.fontStyles.length;
-                this.updateStyles();
-                break;
-            case 'TIME FONTSIZE':
-                this.currentTimeFontSizeIndex = (this.currentTimeFontSizeIndex - 1 + this.timeFontSizes.length) % this.timeFontSizes.length;
-                this.updateStyles();
-                break;
-            case 'DATE FONTSIZE':
-                this.currentDateFontSizeIndex = (this.currentDateFontSizeIndex - 1 + this.dateFontSizes.length) % this.dateFontSizes.length;
-                this.updateStyles();
-                break;
-            case 'LINE SPACING':
-                this.currentLineSpacing = (this.currentLineSpacing - 1 + this.lineSpacings.length) % this.lineSpacings.length;
-                this.updateStyles();
-                break;
-            case 'FONT COLOUR':
-                this.currentColor = (this.currentColor - 1 + this.colors.length) % this.colors.length;
-                this.updateStyles();
-                break;
-            case 'RENDERER':
-                this.currentRenderMode = (this.currentRenderMode - 1 + this.renderModes.length) % this.renderModes.length;
-                this.updateStyles();
-                break;
-            case 'SECONDS':
-                this.currentSecondsDisplay = (this.currentSecondsDisplay - 1 + this.secondsDisplayModes.length) % this.secondsDisplayModes.length;
-                break;
-            case 'WEEKDAY':
-                this.currentWeekdayDisplay = (this.currentWeekdayDisplay - 1 + this.weekdayDisplayModes.length) % this.weekdayDisplayModes.length;
-                break;
-            case 'TEMPERATURE':
-                this.currentTemperatureDisplay = (this.currentTemperatureDisplay - 1 + this.temperatureDisplayModes.length) % this.temperatureDisplayModes.length;
-                this.updateTemperatureDisplay();
-                break;
-            case 'BG OPACITY':
-                this.currentBackgroundOpacity = (this.currentBackgroundOpacity - 1 + this.backgroundOpacities.length) % this.backgroundOpacities.length;
-                this.updateStyles();
-                break;
-            case 'GLOW':
-                this.currentGlowLevel = (this.currentGlowLevel - 1 + this.glowLevels.length) % this.glowLevels.length;
-                this.updateStyles();
-                break;
+        // Handle clock model switching separately (doesn't need save/show)
+        if (parameter === 'CLOCK MODEL') {
+            if (this.multiClockInstance) {
+                const numClocks = this.multiClockInstance.clocks.length;
+                const newIndex = (this.multiClockInstance.currentClockIndex + direction + numClocks) % numClocks;
+                this.multiClockInstance.switchToClock(newIndex);
+            }
+            return;
+        }
+
+        // Map parameter names to their property and array names
+        const parameterMap = {
+            'FONT': { property: 'currentFontType', array: 'fontTypes', updateMethod: 'updateStyles' },
+            'STYLE': { property: 'currentFontStyle', array: 'fontStyles', updateMethod: 'updateStyles' },
+            'TIME FONTSIZE': { property: 'currentTimeFontSizeIndex', array: 'fontSizes', updateMethod: 'updateStyles' },
+            'DATE FONTSIZE': { property: 'currentDateFontSizeIndex', array: 'fontSizes', updateMethod: 'updateStyles' },
+            'LINE SPACING': { property: 'currentLineSpacing', array: 'lineSpacings', updateMethod: 'updateStyles' },
+            'FONT COLOUR': { property: 'currentColor', array: 'colors', updateMethod: 'updateStyles' },
+            'RENDERER': { property: 'currentRenderMode', array: 'renderModes', updateMethod: 'updateStyles' },
+            'SECONDS': { property: 'currentSecondsDisplay', array: 'secondsDisplayModes', updateMethod: null },
+            'WEEKDAY': { property: 'currentWeekdayDisplay', array: 'weekdayDisplayModes', updateMethod: null },
+            'TEMPERATURE': { property: 'currentTemperatureDisplay', array: 'temperatureDisplayModes', updateMethod: 'updateTemperatureDisplay' },
+            'BG OPACITY': { property: 'currentBackgroundOpacity', array: 'backgroundOpacities', updateMethod: 'updateStyles' },
+            'GLOW': { property: 'currentGlowLevel', array: 'glowLevels', updateMethod: 'updateStyles' }
+        };
+
+        const config = parameterMap[parameter];
+        if (config) {
+            // Update the property value
+            const arrayLength = this[config.array].length;
+            this[config.property] = (this[config.property] + direction + arrayLength) % arrayLength;
+
+            // Call update method if specified
+            if (config.updateMethod) {
+                this[config.updateMethod]();
+            }
         }
 
         this.saveSettings();
         this.showSelectedValue();
     }
 
+    changeParameterLeft() {
+        this.changeParameter(-1);
+    }
+
     changeParameterRight() {
-        const parameter = this.parameters[this.currentParameterIndex];
-
-        switch (parameter) {
-            case 'CLOCK MODEL':
-                // Switch to next clock
-                if (this.multiClockInstance) {
-                    const numClocks = this.multiClockInstance.clocks.length;
-                    const newIndex = (this.multiClockInstance.currentClockIndex + 1) % numClocks;
-                    this.multiClockInstance.switchToClock(newIndex);
-                }
-                return; // Don't save settings or show value (clock is switching)
-            case 'FONT':
-                this.currentFontType = (this.currentFontType + 1) % this.fontTypes.length;
-                this.updateStyles();
-                break;
-            case 'STYLE':
-                this.currentFontStyle = (this.currentFontStyle + 1) % this.fontStyles.length;
-                this.updateStyles();
-                break;
-            case 'TIME FONTSIZE':
-                this.currentTimeFontSizeIndex = (this.currentTimeFontSizeIndex + 1) % this.timeFontSizes.length;
-                this.updateStyles();
-                break;
-            case 'DATE FONTSIZE':
-                this.currentDateFontSizeIndex = (this.currentDateFontSizeIndex + 1) % this.dateFontSizes.length;
-                this.updateStyles();
-                break;
-            case 'LINE SPACING':
-                this.currentLineSpacing = (this.currentLineSpacing + 1) % this.lineSpacings.length;
-                this.updateStyles();
-                break;
-            case 'FONT COLOUR':
-                this.currentColor = (this.currentColor + 1) % this.colors.length;
-                this.updateStyles();
-                break;
-            case 'RENDERER':
-                this.currentRenderMode = (this.currentRenderMode + 1) % this.renderModes.length;
-                this.updateStyles();
-                break;
-            case 'SECONDS':
-                this.currentSecondsDisplay = (this.currentSecondsDisplay + 1) % this.secondsDisplayModes.length;
-                break;
-            case 'WEEKDAY':
-                this.currentWeekdayDisplay = (this.currentWeekdayDisplay + 1) % this.weekdayDisplayModes.length;
-                break;
-            case 'TEMPERATURE':
-                this.currentTemperatureDisplay = (this.currentTemperatureDisplay + 1) % this.temperatureDisplayModes.length;
-                this.updateTemperatureDisplay();
-                break;
-            case 'BG OPACITY':
-                this.currentBackgroundOpacity = (this.currentBackgroundOpacity + 1) % this.backgroundOpacities.length;
-                this.updateStyles();
-                break;
-            case 'GLOW':
-                this.currentGlowLevel = (this.currentGlowLevel + 1) % this.glowLevels.length;
-                this.updateStyles();
-                break;
-        }
-
-        this.saveSettings();
-        this.showSelectedValue();
+        this.changeParameter(1);
     }
 
     updateClock() {
