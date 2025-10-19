@@ -423,6 +423,7 @@ export class DSEGClock {
                 z-index: 1;
                 pointer-events: none;
                 white-space: nowrap;
+                ${transitionCSS}
             }
 
             .dseg-weekday-date.dseg-background,
@@ -435,6 +436,7 @@ export class DSEGClock {
                 z-index: 1;
                 pointer-events: none;
                 white-space: pre;
+                ${transitionCSS}
             }
 
             .dseg-time-minus20-seconds {
