@@ -35,18 +35,20 @@ The application uses a modular ES6 module system with a robust parameter managem
    - Professional 7/14-segment display using DSEG font family
    - **Fonts**: DSEG7 (numeric) for time/date/temperature, DSEG14 (alphanumeric) for weekday
    - **Font Types**: Classic and Modern variants
-   - **Parameters**: CLOCK MODEL, FONT (Classic/Modern), STYLE (6 weight variants), TIME FONTSIZE (36pt-400pt), DATE FONTSIZE (36pt-400pt), FONT COLOUR (8 colors including LCD), RENDERER (3 modes), SECONDS (Show/5 reduced sizes/Hide), WEEKDAY (Show/Hide), TEMPERATURE (Show/Hide), BG OPACITY (Off/5%-50%)
+   - **Parameters**: CLOCK MODEL, FONT (Classic/Modern), STYLE (6 weight variants), TIME FONTSIZE (36pt-400pt), DATE FONTSIZE (36pt-400pt), LINE SPACING (1x-5x), FONT COLOUR (8 colors including LCD), RENDERER (3 modes), SECONDS (7 display modes), WEEKDAY (5 display modes), TEMPERATURE (Show/Hide), BG OPACITY (Off/5%-50%), GLOW (Off/10%-100%)
    - **Style Variants**: Light, Light Italic, Regular, Italic (default), Bold, Bold Italic
    - **Font Sizes**: 44 sizes from 36pt to 400pt with fine-grained control
    - **Color Schemes**: 8 options including special LCD mode with greenish-yellow background and LCD texture
-   - **Seconds Display**: Show full-size, Show at -20%/-30%/-40%/-50% size, or Hide with blinking colon
+   - **Seconds Display**: Show full-size, -20%/-30%/-40%/-50% reduced size, OFF-Flash-Colon (2 Hz colon flash), OFF-Flash-Decimal (2 Hz decimal point flash)
+   - **Weekday Display**: Off, 2 Chars, 3 Chars, Full (inline), Full Separate (on own line)
+   - **Line Spacing**: 1x-5x multiplier for weekday/date line-height control
+   - **Glow Effect**: Off or 10%-100% LED glow intensity using CSS text-shadow
    - **Background Segments**: Adjustable opacity (Off, 5%-50% in 5% increments) showing inactive "88" segments for all color schemes
    - **Temperature Display**: Current temp, high/low for Stevenage, UK via Open-Meteo API (updates every 10 minutes)
-   - **Weekday Display**: Full day names (Sunday-Saturday) using DSEG14 fonts
-   - **Default**: Classic font, Italic style, White color, 72pt time, 48pt date, background off, seconds shown, weekday shown, temperature hidden
+   - **Default**: Classic font, Italic style, White color, 72pt time, 48pt date, 1x line spacing, background off, no glow, seconds shown, weekday shown, temperature hidden
    - **Font Loading**: Dynamic loading of 24 font variants (12 DSEG7 + 12 DSEG14) via @font-face
    - **Independent Sizing**: Time and date font sizes fully independent with MS Word-like point sizes
-   - **Persistent Elements**: Uses visibility toggling instead of DOM manipulation to prevent text movement
+   - **Instant Updates**: All display changes occur instantly without fade transitions
 
 4. **Slim Analog Clock** (`clocks/4_aviation-clock.js`):
    - Aviation-style slim analog clock with PixiJS rendering
@@ -109,7 +111,7 @@ Each clock implements a standardized parameter interface:
 - **Settings Saved**:
   - Clock 1: Size, Color
   - Clock 2: Font, Font Size, Color, Renderer
-  - Clock 3 (DSEG): Font Type, Font Style, Time Font Size, Date Font Size, Color, Renderer, Seconds Display, Weekday Display, Temperature Display, Background Opacity
+  - Clock 3 (DSEG): Font Type, Font Style, Time Font Size, Date Font Size, Line Spacing, Color, Renderer, Seconds Display, Weekday Display, Temperature Display, Background Opacity, Glow Level
   - Clock 4: Size, Color, Seconds Hand Mode
 - **Storage Keys**: Prefixed with `multiclock_` to avoid conflicts
 - **Last Clock**: Last viewed clock automatically restored on page load
@@ -253,10 +255,12 @@ MultiClock/
 - **Debug Logging**: Comprehensive console logging for settings persistence debugging
 - **Background Segments**: Adjustable opacity (Off to 50%) for inactive segment visualization on all color schemes
 - **Weather Integration**: Real-time temperature display with high/low via Open-Meteo API
-- **Persistent Elements**: Text movement fix using visibility toggling instead of DOM manipulation
 - **LCD Mode**: Special greenish-yellow LCD background with texture image for authentic LCD display appearance
 - **Independent Sizing**: Separate font size controls for time and date (36pt-400pt in 44 steps)
-- **Flexible Seconds**: 6 display modes including 4 reduced-size options (-20%/-30%/-40%/-50%)
+- **Flexible Seconds**: 7 display modes including 4 reduced-size options (-20%/-30%/-40%/-50%) and 2 flashing modes (colon/decimal at 2 Hz)
+- **Weekday Formatting**: 5 display modes (Off, 2/3 chars, Full inline, Full separate line)
+- **Line Spacing Control**: 1x-5x multiplier for vertical spacing between weekday and date lines
+- **LED Glow Effect**: Adjustable text-shadow glow from Off to 100% intensity (11 levels)
+- **Instant Display Updates**: Removed fade transitions for immediate parameter changes (Clock 3)
 
 This architecture provides a solid foundation for adding new clock types while maintaining consistency and quality across the entire application.
-- i said never push and commit automatically!!!
