@@ -230,11 +230,6 @@ H: Show this help</div>
                             break;
                     }
                 });
-
-                // Auto-enter fullscreen on load
-                document.addEventListener('DOMContentLoaded', () => {
-                    setTimeout(() => this.enterFullscreen(), 100);
-                });
             }
 
             async loadClock(index) {
@@ -363,10 +358,9 @@ H: Show this help</div>
             }
         }
 
-        // Initialize MultiClock when the page loads
-        window.addEventListener('load', () => {
-            new MultiClock();
-        });
+        // Initialize MultiClock
+        // Module scripts are deferred by default, so DOM is ready when this executes
+        new MultiClock();
 
         // Auto-reload checker - checks for updates every 30 minutes
         (function autoReloadChecker() {

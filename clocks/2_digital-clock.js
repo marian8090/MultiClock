@@ -211,7 +211,7 @@ export class DigitalClock {
                 background: rgba(0, 0, 0, 0.3);
                 padding: 8px;
                 max-width: 90vw;
-                overflow-x: auto;
+                overflow-x: hidden;
             }
 
             .parameter-row {

@@ -374,7 +374,7 @@ export class AnalogClock {
                     background: rgba(0, 0, 0, 0.3);
                     padding: 8px;
                     max-width: 90vw;
-                    overflow-x: auto;
+                    overflow-x: hidden;
                 }
 
                 .analog-parameter-row {

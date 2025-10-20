@@ -269,5 +269,7 @@ MultiClock/
 - **LED Glow Effect**: Adjustable text-shadow glow from Off to 100% intensity (11 levels)
 - **Instant Display Updates**: Removed fade transitions for immediate parameter changes (Clock 3)
 - **Code Refactoring (Clock 3)**: Data-driven parameter handling with configuration maps, static constants for magic numbers, property-based conditionals for maintainability and resilience to changes
+- **Chrome Compatibility Fix**: Fixed module initialization timing issues that prevented the application from loading in Chrome
+- **UI Polish**: Removed horizontal scrollbar from parameter displays for cleaner interface
 
 This architecture provides a solid foundation for adding new clock types while maintaining consistency and quality across the entire application.
