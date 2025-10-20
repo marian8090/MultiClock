@@ -29,6 +29,8 @@ export class DSEGClock {
         this.currentTemperature = '--';
         this.currentTempHigh = '--';
         this.currentTempLow = '--';
+        this.currentWindSpeed = '--';
+        this.currentWindDirection = '--';
 
         // Available font types
         this.fontTypes = [
@@ -90,10 +92,12 @@ export class DSEGClock {
             { name: 'Full Separate', value: 'fullseparate' }
         ];
 
-        // Available temperature display modes
-        this.temperatureDisplayModes = [
-            { name: 'Show', value: 'show' },
-            { name: 'Hide', value: 'hide' }
+        // Available weather display modes
+        this.weatherDisplayModes = [
+            { name: 'OFF', value: 'off' },
+            { name: 'TEMP', value: 'temp' },
+            { name: 'TEMP+HI/LO', value: 'temp_hilo' },
+            { name: 'TEMP+WIND', value: 'temp_wind' }
         ];
 
         // Available background opacity levels (for all color schemes)
@@ -142,7 +146,7 @@ export class DSEGClock {
         ];
 
         // Parameters
-        this.parameters = ['CLOCK MODEL', 'FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'LINE SPACING', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY', 'TEMPERATURE', 'BG OPACITY', 'GLOW'];
+        this.parameters = ['CLOCK MODEL', 'FONT', 'STYLE', 'TIME FONTSIZE', 'DATE FONTSIZE', 'LINE SPACING', 'FONT COLOUR', 'RENDERER', 'SECONDS', 'WEEKDAY', 'TEMP/WIND', 'BG OPACITY', 'GLOW'];
         this.currentParameterIndex = 0;
 
         // Reference to MultiClock instance for clock switching
@@ -157,7 +161,7 @@ export class DSEGClock {
         this.currentRenderMode = 0; // Smooth by default
         this.currentSecondsDisplay = 0; // Show by default
         this.currentWeekdayDisplay = 3; // Full by default (index 3)
-        this.currentTemperatureDisplay = 1; // Hide by default
+        this.currentWeatherDisplay = 0; // OFF by default (index 0)
         this.currentBackgroundOpacity = 0; // Off by default (index 0)
         this.currentGlowLevel = 0; // Off by default (index 0)
         this.currentLineSpacing = 0; // 1x by default (index 0)
@@ -200,7 +204,7 @@ export class DSEGClock {
             currentRenderMode: this.currentRenderMode,
             currentSecondsDisplay: this.currentSecondsDisplay,
             currentWeekdayDisplay: this.currentWeekdayDisplay,
-            currentTemperatureDisplay: this.currentTemperatureDisplay,
+            currentWeatherDisplay: this.currentWeatherDisplay,
             currentBackgroundOpacity: this.currentBackgroundOpacity,
             currentGlowLevel: this.currentGlowLevel,
             currentLineSpacing: this.currentLineSpacing
@@ -233,8 +237,18 @@ export class DSEGClock {
         if (settings.currentWeekdayDisplay !== undefined && settings.currentWeekdayDisplay >= 0 && settings.currentWeekdayDisplay < this.weekdayDisplayModes.length) {
             this.currentWeekdayDisplay = settings.currentWeekdayDisplay;
         }
-        if (settings.currentTemperatureDisplay !== undefined && settings.currentTemperatureDisplay >= 0 && settings.currentTemperatureDisplay < this.temperatureDisplayModes.length) {
-            this.currentTemperatureDisplay = settings.currentTemperatureDisplay;
+        // Support both old (currentTemperatureDisplay) and new (currentWeatherDisplay) property names for backward compatibility
+        if (settings.currentWeatherDisplay !== undefined && settings.currentWeatherDisplay >= 0 && settings.currentWeatherDisplay < this.weatherDisplayModes.length) {
+            this.currentWeatherDisplay = settings.currentWeatherDisplay;
+        } else if (settings.currentTemperatureDisplay !== undefined) {
+            // Convert old "Show/Hide" settings to new weather display modes
+            // Old: 0 = Show, 1 = Hide
+            // New: 0 = OFF, 1 = TEMP, 2 = TEMP+HI/LO, 3 = TEMP+WIND
+            if (settings.currentTemperatureDisplay === 0) {
+                this.currentWeatherDisplay = 2; // Show -> TEMP+HI/LO (was the old "show" behavior)
+            } else {
+                this.currentWeatherDisplay = 0; // Hide -> OFF
+            }
         }
         if (settings.currentBackgroundOpacity !== undefined && settings.currentBackgroundOpacity >= 0 && settings.currentBackgroundOpacity < this.backgroundOpacities.length) {
             this.currentBackgroundOpacity = settings.currentBackgroundOpacity;
@@ -795,8 +809,8 @@ export class DSEGClock {
                 return this.secondsDisplayModes.map(s => s.name);
             case 'WEEKDAY':
                 return this.weekdayDisplayModes.map(w => w.name);
-            case 'TEMPERATURE':
-                return this.temperatureDisplayModes.map(t => t.name);
+            case 'TEMP/WIND':
+                return this.weatherDisplayModes.map(t => t.name);
             case 'BG OPACITY':
                 return this.backgroundOpacities.map(o => o.name);
             case 'GLOW':
@@ -833,8 +847,8 @@ export class DSEGClock {
                 return this.currentSecondsDisplay;
             case 'WEEKDAY':
                 return this.currentWeekdayDisplay;
-            case 'TEMPERATURE':
-                return this.currentTemperatureDisplay;
+            case 'TEMP/WIND':
+                return this.currentWeatherDisplay;
             case 'BG OPACITY':
                 return this.currentBackgroundOpacity;
             case 'GLOW':
@@ -880,7 +894,7 @@ export class DSEGClock {
             'RENDERER': { property: 'currentRenderMode', array: 'renderModes', updateMethod: 'updateStyles' },
             'SECONDS': { property: 'currentSecondsDisplay', array: 'secondsDisplayModes', updateMethod: null },
             'WEEKDAY': { property: 'currentWeekdayDisplay', array: 'weekdayDisplayModes', updateMethod: null },
-            'TEMPERATURE': { property: 'currentTemperatureDisplay', array: 'temperatureDisplayModes', updateMethod: 'updateTemperatureDisplay' },
+            'TEMP/WIND': { property: 'currentWeatherDisplay', array: 'weatherDisplayModes', updateMethod: 'updateTemperatureDisplay' },
             'BG OPACITY': { property: 'currentBackgroundOpacity', array: 'backgroundOpacities', updateMethod: 'updateStyles' },
             'GLOW': { property: 'currentGlowLevel', array: 'glowLevels', updateMethod: 'updateStyles' }
         };
@@ -1097,7 +1111,7 @@ export class DSEGClock {
             // Stevenage, UK coordinates
             const latitude = 51.90;
             const longitude = -0.20;
-            const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m&daily=temperature_2m_max,temperature_2m_min&timezone=Europe/London&temperature_unit=celsius`;
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,wind_speed_10m,wind_direction_10m&daily=temperature_2m_max,temperature_2m_min&timezone=Europe/London&temperature_unit=celsius&wind_speed_unit=kmh`;
 
             const response = await fetch(url);
             if (!response.ok) {
@@ -1116,21 +1130,50 @@ export class DSEGClock {
             this.currentTempHigh = tempHigh.toString();
             this.currentTempLow = tempLow.toString();
 
-            // Update display immediately if temperature is shown
+            // Get wind speed (convert km/h to knots) and direction
+            const windSpeedKmh = data.current.wind_speed_10m;
+            const windSpeedKnots = Math.round(windSpeedKmh * 0.539957);
+            this.currentWindSpeed = windSpeedKnots.toString();
+
+            // Round wind direction to nearest 10 degrees
+            const windDirection = data.current.wind_direction_10m;
+            const windDirectionRounded = Math.round(windDirection / 10) * 10;
+            this.currentWindDirection = windDirectionRounded.toString();
+
+            // Update display immediately if weather is shown
             this.updateTemperatureDisplay();
         } catch (error) {
-            console.error('[DSEGClock] Error fetching temperature:', error);
+            console.error('[DSEGClock] Error fetching weather data:', error);
             this.currentTemperature = '--';
             this.currentTempHigh = '--';
             this.currentTempLow = '--';
+            this.currentWindSpeed = '--';
+            this.currentWindDirection = '--';
             this.updateTemperatureDisplay();
         }
     }
 
     updateTemperatureDisplay() {
-        const temperatureMode = this.temperatureDisplayModes[this.currentTemperatureDisplay].value;
+        const weatherMode = this.weatherDisplayModes[this.currentWeatherDisplay].value;
 
-        if (temperatureMode === 'show') {
+        if (weatherMode === 'off') {
+            // Hide weather display
+            this.temperatureElement.textContent = '';
+            this.temperatureElement.style.display = 'none';
+            this.backgroundTemperatureElement.textContent = '';
+            this.backgroundTemperatureElement.style.display = 'none';
+        } else if (weatherMode === 'temp') {
+            // Show temperature only
+            const newTemperatureText = `${this.currentTemperature}°`;
+
+            this.temperatureElement.textContent = newTemperatureText;
+            this.temperatureElement.style.display = 'block';
+
+            // Background all-segments-on for LCD mode
+            this.backgroundTemperatureElement.textContent = '88°';
+            this.backgroundTemperatureElement.style.display = 'block';
+        } else if (weatherMode === 'temp_hilo') {
+            // Show temperature with high/low
             // Using Unicode non-breaking spaces (U+00A0) for better spacing visibility
             const newTemperatureText = `${this.currentTemperature}°\u00A0\u00A0\u00A0${this.currentTempHigh}°/${this.currentTempLow}°`;
 
@@ -1141,11 +1184,18 @@ export class DSEGClock {
             // Pattern: 88°   88°/88°  (matching temp, high/low format with all segments visible)
             this.backgroundTemperatureElement.textContent = '88°\u00A0\u00A0\u00A088°/88°';
             this.backgroundTemperatureElement.style.display = 'block';
-        } else {
-            this.temperatureElement.textContent = '';
-            this.temperatureElement.style.display = 'none';
-            this.backgroundTemperatureElement.textContent = '';
-            this.backgroundTemperatureElement.style.display = 'none';
+        } else if (weatherMode === 'temp_wind') {
+            // Show temperature with wind (format: 15° 10/250)
+            // Using Unicode non-breaking spaces (U+00A0) for better spacing visibility
+            const newTemperatureText = `${this.currentTemperature}°\u00A0\u00A0\u00A0${this.currentWindSpeed}/${this.currentWindDirection}`;
+
+            this.temperatureElement.textContent = newTemperatureText;
+            this.temperatureElement.style.display = 'block';
+
+            // Background all-segments-on for LCD mode
+            // Pattern: 88°   88/888  (matching temp, wind format with all segments visible)
+            this.backgroundTemperatureElement.textContent = '88°\u00A0\u00A0\u00A088/888';
+            this.backgroundTemperatureElement.style.display = 'block';
         }
     }
 

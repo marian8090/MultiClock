@@ -33,9 +33,9 @@ The application uses a modular ES6 module system with a robust parameter managem
 
 3. **DSEG Clock** (`clocks/3_dseg-clock.js`):
    - Professional 7/14-segment display using DSEG font family
-   - **Fonts**: DSEG7 (numeric) for time/date/temperature, DSEG14 (alphanumeric) for weekday
+   - **Fonts**: DSEG7 (numeric) for time/date/weather, DSEG14 (alphanumeric) for weekday
    - **Font Types**: Classic and Modern variants
-   - **Parameters**: CLOCK MODEL, FONT (Classic/Modern), STYLE (6 weight variants), TIME FONTSIZE (36pt-400pt), DATE FONTSIZE (36pt-400pt), LINE SPACING (1x-5x), FONT COLOUR (13 colors), RENDERER (3 modes), SECONDS (7 display modes), WEEKDAY (5 display modes), TEMPERATURE (Show/Hide), BG OPACITY (Off/5%-50%), GLOW (Off/10%-100%)
+   - **Parameters**: CLOCK MODEL, FONT (Classic/Modern), STYLE (6 weight variants), TIME FONTSIZE (36pt-400pt), DATE FONTSIZE (36pt-400pt), LINE SPACING (1x-5x), FONT COLOUR (13 colors), RENDERER (3 modes), SECONDS (7 display modes), WEEKDAY (5 display modes), TEMP/WIND (4 display modes), BG OPACITY (Off/5%-50%), GLOW (Off/10%-100%)
    - **Style Variants**: Light, Light Italic, Regular, Italic (default), Bold, Bold Italic
    - **Font Sizes**: 44 sizes from 36pt to 400pt with fine-grained control
    - **Color Schemes**: 13 options including vintage displays (3 NIXIE tube variants, 2 VFD variants) and special LCD mode with greenish-yellow background and grainy texture
@@ -46,8 +46,12 @@ The application uses a modular ES6 module system with a robust parameter managem
    - **Line Spacing**: 1x-5x multiplier for weekday/date line-height control
    - **Glow Effect**: Off or 10%-100% LED glow intensity using CSS text-shadow
    - **Background Segments**: Adjustable opacity (Off, 5%-50% in 5% increments) showing inactive "88" segments for all color schemes
-   - **Temperature Display**: Current temp, high/low for Stevenage, UK via Open-Meteo API (updates every 10 minutes)
-   - **Default**: Classic font, Italic style, White color, 72pt time, 48pt date, 1x line spacing, background off, no glow, seconds shown, weekday shown, temperature hidden
+   - **Weather Display**: 4 modes via Open-Meteo API (updates every 10 minutes) for Stevenage, UK:
+     - **OFF**: No weather data shown
+     - **TEMP**: Current temperature only (e.g., "15°")
+     - **TEMP+HI/LO**: Current temp with daily high/low (e.g., "15° 18°/12°")
+     - **TEMP+WIND**: Current temp with wind speed in knots and direction rounded to nearest 10° (e.g., "15° 10/250" = 15°C, 10 knots from 250°)
+   - **Default**: Classic font, Italic style, White color, 72pt time, 48pt date, 1x line spacing, background off, no glow, seconds shown, weekday shown, weather off
    - **Font Loading**: Dynamic loading of 24 font variants (12 DSEG7 + 12 DSEG14) via @font-face
    - **Independent Sizing**: Time and date font sizes fully independent with MS Word-like point sizes
    - **Instant Updates**: All display changes occur instantly without fade transitions
@@ -259,7 +263,7 @@ MultiClock/
 - **Dynamic Font Loading**: Runtime font switching with multiple weight and style options
 - **Debug Logging**: Comprehensive console logging for settings persistence debugging
 - **Background Segments**: Adjustable opacity (Off to 50%) for inactive segment visualization on all color schemes
-- **Weather Integration**: Real-time temperature display with high/low via Open-Meteo API
+- **Weather Integration**: Comprehensive weather display with 4 modes (OFF, TEMP, TEMP+HI/LO, TEMP+WIND) via Open-Meteo API, including wind speed in knots and direction rounded to nearest 10°
 - **LCD Mode**: Special greenish-yellow LCD background with grainy texture image for authentic LCD display appearance
 - **Vintage Display Colors**: NIXIE tube colors (warm, deep, classic orange variants) and VFD colors (classic/soft cyan-blue) for retro aesthetics
 - **Independent Sizing**: Separate font size controls for time and date (36pt-400pt in 44 steps)
@@ -271,5 +275,7 @@ MultiClock/
 - **Code Refactoring (Clock 3)**: Data-driven parameter handling with configuration maps, static constants for magic numbers, property-based conditionals for maintainability and resilience to changes
 - **Chrome Compatibility Fix**: Fixed module initialization timing issues that prevented the application from loading in Chrome
 - **UI Polish**: Removed horizontal scrollbar from parameter displays for cleaner interface
+- **Auto-Reload Enhancement**: 5-minute update checks with fullscreen state preservation across reloads
+- **Wind Data Display**: Real-time wind speed (in knots) and direction (rounded to nearest 10°) integrated with temperature display
 
 This architecture provides a solid foundation for adding new clock types while maintaining consistency and quality across the entire application.
