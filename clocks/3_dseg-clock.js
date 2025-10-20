@@ -88,8 +88,7 @@ export class DSEGClock {
             { name: 'Off', value: 'off' },
             { name: '2 Chars', value: '2chars' },
             { name: '3 Chars', value: '3chars' },
-            { name: 'Full', value: 'full' },
-            { name: 'Full Separate', value: 'fullseparate' }
+            { name: 'Full', value: 'full' }
         ];
 
         // Available weather display modes
@@ -387,11 +386,10 @@ export class DSEGClock {
                 opacity: ${this.backgroundOpacities[this.currentBackgroundOpacity].value};
                 position: absolute;
                 top: 0;
-                left: 0;
-                right: 0;
                 z-index: 1;
                 pointer-events: none;
                 white-space: pre;
+                text-align: left;
             }
 
             .dseg-time-minus20-seconds {
@@ -453,6 +451,7 @@ export class DSEGClock {
             .dseg-weekday-date-container,
             .dseg-temperature-container {
                 position: relative;
+                text-align: left;
             }
 
             .dseg-weekday-date {
@@ -460,7 +459,7 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0;
                 font-family: '${weekdayFontFamily}', monospace;
-                text-align: center;
+                text-align: left;
                 max-width: 90vw;
                 word-wrap: break-word;
                 line-height: ${lineHeight};
@@ -480,7 +479,7 @@ export class DSEGClock {
                 font-weight: normal;
                 letter-spacing: 0;
                 font-family: '${weekdayFontFamily}', monospace;
-                text-align: center;
+                text-align: left;
                 ${renderingCSS.text}
                 ${glowCSS}
                 z-index: 2;
@@ -928,7 +927,7 @@ export class DSEGClock {
         const secondsMode = this.secondsDisplayModes[this.currentSecondsDisplay].value;
         const weekdayMode = this.weekdayDisplayModes[this.currentWeekdayDisplay].value;
 
-        const hours = String(now.getHours()).padStart(2, '0');
+        const hours = String(now.getHours()).padStart(2, '!');  // Use ! for leading blank instead of 0
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
 
@@ -942,8 +941,13 @@ export class DSEGClock {
             newTimeText = `${hours}:${minutes}:${seconds}`;
             showReducedSeconds = false;
         } else if (secondsMode === 'minus20' || secondsMode === 'minus30' || secondsMode === 'minus40' || secondsMode === 'minus50') {
+            // Reduced seconds: Show HH:MM with flashing colon at 2Hz, plus reduced-size seconds
+            const milliseconds = now.getMilliseconds();
+            // 2 Hz = flash on for 0-499ms (first half of second)
+            this.colonVisible = (milliseconds < 500);
+
             newTimeText = `${hours}:${minutes}`;
-            newReducedSecondsText = `:${seconds}`;
+            newReducedSecondsText = seconds;  // Just seconds, no colon prefix
             reducedSecondsClass = `dseg-time-${secondsMode}-seconds`;
             showReducedSeconds = true;
         } else if (secondsMode === 'hideflashcolon') {
@@ -973,26 +977,26 @@ export class DSEGClock {
         }
 
         // Handle time element
-        const isFlashingColon = (secondsMode === 'hideflashcolon');
+        const isFlashingColon = (secondsMode === 'hideflashcolon') ||
+                                (secondsMode === 'minus20') || (secondsMode === 'minus30') ||
+                                (secondsMode === 'minus40') || (secondsMode === 'minus50');
 
-        // Update time text
-        this.clockElement.textContent = newTimeText;
-
-        // Handle colon overlay for flashing colon mode
-        // The clockElement shows "HH:MM" always at full opacity
-        // The colonElement overlays just the colon character with black when hidden
+        // Update time text - for flashing colon modes, show colon separately
         if (isFlashingColon) {
-            // Position colon element to overlay the actual colon in HH:MM
-            this.colonElement.textContent = ':';
-            this.colonElement.style.display = 'inline-block';
-            this.colonElement.style.position = 'absolute';
-            this.colonElement.style.left = '2ch'; // Position after "HH" (2 characters)
+            // Split time into hours:minutes and colon
+            const parts = newTimeText.split(':');
+            this.clockElement.textContent = `${parts[0]} ${parts[1]}`;  // HH MM (with space)
 
-            // Control colon visibility by overlaying with background color
-            this.colonElement.style.opacity = this.colonVisible ? '0' : '1';
-            const bgColor = this.colors[this.currentColor].background || '#000000';
-            this.colonElement.style.color = bgColor;
+            // Show only colon with controlled opacity (like flashing decimal)
+            this.colonElement.textContent = ':';  // Just the colon
+            this.colonElement.style.display = 'inline';
+            this.colonElement.style.position = 'absolute';
+            this.colonElement.style.left = '2ch';  // Position after HH (2 characters)
+            // Control opacity: visible when colonVisible is true, hidden when false
+            this.colonElement.style.opacity = this.colonVisible ? '1' : '0';
+            this.colonElement.style.color = 'inherit'; // Use the current color
         } else {
+            this.clockElement.textContent = newTimeText;
             this.colonElement.style.display = 'none';
         }
 
@@ -1030,16 +1034,23 @@ export class DSEGClock {
             this.backgroundReducedSecondsElement.className = 'dseg-time';
             this.backgroundReducedSecondsElement.style.display = 'inline';
         } else if (secondsMode === 'hideflashcolon') {
-            // Show full 88:88 in background for flash-colon mode
-            this.backgroundClockElement.textContent = '88:88';
+            // Show background with separate colon for flash-colon mode
+            this.backgroundClockElement.textContent = '88 88';  // HH MM with space
             this.backgroundClockElement.className = 'dseg-time';
-            this.backgroundColonElement.style.display = 'none';
+            this.backgroundColonElement.textContent = ':';  // Just colon
+            this.backgroundColonElement.style.display = 'inline';
+            this.backgroundColonElement.style.position = 'absolute';
+            this.backgroundColonElement.style.left = '2ch';  // Position at same spot as foreground colon
             this.backgroundReducedSecondsElement.style.display = 'none';
         } else if (showReducedSeconds) {
-            this.backgroundClockElement.textContent = '88:88';
+            // Reduced seconds modes also have flashing colon
+            this.backgroundClockElement.textContent = '88 88';  // HH MM with space
             this.backgroundClockElement.className = 'dseg-time';
-            this.backgroundColonElement.style.display = 'none';
-            this.backgroundReducedSecondsElement.textContent = ':88';
+            this.backgroundColonElement.textContent = ':';  // Just colon
+            this.backgroundColonElement.style.display = 'inline';
+            this.backgroundColonElement.style.position = 'absolute';
+            this.backgroundColonElement.style.left = '2ch';  // Position at same spot as foreground colon
+            this.backgroundReducedSecondsElement.textContent = '88';  // No colon prefix
             this.backgroundReducedSecondsElement.className = `dseg-time-${secondsMode}-seconds`;
             this.backgroundReducedSecondsElement.style.display = 'inline';
         } else {
@@ -1068,27 +1079,23 @@ export class DSEGClock {
         switch (weekdayMode) {
             case 'off':
                 newWeekdayDateText = dateString;
-                bgWeekdayText = '88.88.8888';
+                bgWeekdayText = this.generateBackground(newWeekdayDateText);
                 break;
             case '2chars':
-                newWeekdayDateText = `${weekday2Char}  ${dateString}`;
-                bgWeekdayText = '88  88.88.8888';
+                newWeekdayDateText = `${weekday2Char}!${dateString}`;
+                bgWeekdayText = this.generateBackground(newWeekdayDateText);
                 break;
             case '3chars':
-                newWeekdayDateText = `${weekday3Char}  ${dateString}`;
-                bgWeekdayText = '888  88.88.8888';
+                newWeekdayDateText = `${weekday3Char}!${dateString}`;
+                bgWeekdayText = this.generateBackground(newWeekdayDateText);
                 break;
             case 'full':
-                newWeekdayDateText = `${weekdayFull}  ${dateString}`;
-                bgWeekdayText = '8'.repeat(weekdayFull.length) + '  88.88.8888';
-                break;
-            case 'fullseparate':
-                newWeekdayDateText = `${weekdayFull}\n${dateString}`;
-                bgWeekdayText = '8'.repeat(weekdayFull.length) + '\n88.88.8888';
+                newWeekdayDateText = `${weekdayFull}!${dateString}`;
+                bgWeekdayText = this.generateBackground(newWeekdayDateText);
                 break;
             default:
                 newWeekdayDateText = dateString;
-                bgWeekdayText = '88.88.8888';
+                bgWeekdayText = this.generateBackground(newWeekdayDateText);
         }
 
         // Handle weekday/date
@@ -1098,6 +1105,9 @@ export class DSEGClock {
         // Update background for weekday/date
         this.backgroundWeekdayDateElement.textContent = bgWeekdayText;
         this.backgroundWeekdayDateElement.style.display = 'block';
+
+        // Store weekday/date background length for temperature line to match
+        this.weekdayDateBackgroundLength = bgWeekdayText.length;
     }
 
     startUpdate() {
@@ -1153,6 +1163,16 @@ export class DSEGClock {
         }
     }
 
+    // Generate background string with ~. pattern for DSEG font
+    generateBackground(text) {
+        // Periods (.) have ZERO WIDTH in DSEG fonts, so we only count visible characters
+        // Remove all periods from the text to get the actual visible character count
+        const visibleLength = text.replace(/\./g, '').length;
+        // Create ~. pattern repeated for each visible character
+        // Each ~. displays as one segment with decimal point
+        return '~.'.repeat(visibleLength);
+    }
+
     updateTemperatureDisplay() {
         const weatherMode = this.weatherDisplayModes[this.currentWeatherDisplay].value;
 
@@ -1169,32 +1189,39 @@ export class DSEGClock {
             this.temperatureElement.textContent = newTemperatureText;
             this.temperatureElement.style.display = 'block';
 
-            // Background all-segments-on for LCD mode (3 digits to handle negative temps like -13°)
-            this.backgroundTemperatureElement.textContent = '888°';
+            // Generate background - use max of weekday/date background length or temperature text length
+            const tempBg = this.generateBackground(newTemperatureText);
+            const weekdayBgLength = this.weekdayDateBackgroundLength || 0;
+            const finalBg = tempBg.length >= weekdayBgLength ? tempBg : tempBg + '~.'.repeat(Math.ceil((weekdayBgLength - tempBg.length) / 2));
+            this.backgroundTemperatureElement.textContent = finalBg;
             this.backgroundTemperatureElement.style.display = 'block';
         } else if (weatherMode === 'temp_hilo') {
-            // Show temperature with high/low
-            // Using Unicode non-breaking spaces (U+00A0) for better spacing visibility
-            const newTemperatureText = `${this.currentTemperature}°\u00A0\u00A0\u00A0${this.currentTempHigh}°/${this.currentTempLow}°`;
+            // Show temperature with high/low (no degree symbols for HI/LO)
+            // Using exclamation marks (!) for proper monospace spacing in DSEG fonts
+            const newTemperatureText = `${this.currentTemperature}°!!!${this.currentTempHigh}/${this.currentTempLow}`;
 
             this.temperatureElement.textContent = newTemperatureText;
             this.temperatureElement.style.display = 'block';
 
-            // Background all-segments-on for LCD mode
-            // Pattern: 88°   88°/88°  (matching temp, high/low format with all segments visible)
-            this.backgroundTemperatureElement.textContent = '88°\u00A0\u00A0\u00A088°/88°';
+            // Generate background - use max of weekday/date background length or temperature text length
+            const tempBg = this.generateBackground(newTemperatureText);
+            const weekdayBgLength = this.weekdayDateBackgroundLength || 0;
+            const finalBg = tempBg.length >= weekdayBgLength ? tempBg : tempBg + '~.'.repeat(Math.ceil((weekdayBgLength - tempBg.length) / 2));
+            this.backgroundTemperatureElement.textContent = finalBg;
             this.backgroundTemperatureElement.style.display = 'block';
         } else if (weatherMode === 'temp_wind') {
-            // Show temperature with wind (format: 24° 8/080 or -3° 15/250)
-            // Using Unicode non-breaking spaces (U+00A0) for better spacing visibility
-            const newTemperatureText = `${this.currentTemperature}°\u00A0\u00A0\u00A0${this.currentWindSpeed}/${this.currentWindDirection}`;
+            // Show temperature with wind (format: 24°!!!8/080)
+            // Using exclamation marks (!) for proper monospace spacing in DSEG fonts
+            const newTemperatureText = `${this.currentTemperature}°!!!${this.currentWindSpeed}/${this.currentWindDirection}`;
 
             this.temperatureElement.textContent = newTemperatureText;
             this.temperatureElement.style.display = 'block';
 
-            // Background all-segments-on for LCD mode
-            // Pattern: 888°   88/888  (3-digit temp for negatives, 2-digit speed, 3-digit direction)
-            this.backgroundTemperatureElement.textContent = '888°\u00A0\u00A0\u00A088/888';
+            // Generate background - use max of weekday/date background length or temperature text length
+            const tempBg = this.generateBackground(newTemperatureText);
+            const weekdayBgLength = this.weekdayDateBackgroundLength || 0;
+            const finalBg = tempBg.length >= weekdayBgLength ? tempBg : tempBg + '~.'.repeat(Math.ceil((weekdayBgLength - tempBg.length) / 2));
+            this.backgroundTemperatureElement.textContent = finalBg;
             this.backgroundTemperatureElement.style.display = 'block';
         }
     }
