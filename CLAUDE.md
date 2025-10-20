@@ -35,10 +35,12 @@ The application uses a modular ES6 module system with a robust parameter managem
    - Professional 7/14-segment display using DSEG font family
    - **Fonts**: DSEG7 (numeric) for time/date/temperature, DSEG14 (alphanumeric) for weekday
    - **Font Types**: Classic and Modern variants
-   - **Parameters**: CLOCK MODEL, FONT (Classic/Modern), STYLE (6 weight variants), TIME FONTSIZE (36pt-400pt), DATE FONTSIZE (36pt-400pt), LINE SPACING (1x-5x), FONT COLOUR (8 colors including LCD), RENDERER (3 modes), SECONDS (7 display modes), WEEKDAY (5 display modes), TEMPERATURE (Show/Hide), BG OPACITY (Off/5%-50%), GLOW (Off/10%-100%)
+   - **Parameters**: CLOCK MODEL, FONT (Classic/Modern), STYLE (6 weight variants), TIME FONTSIZE (36pt-400pt), DATE FONTSIZE (36pt-400pt), LINE SPACING (1x-5x), FONT COLOUR (13 colors), RENDERER (3 modes), SECONDS (7 display modes), WEEKDAY (5 display modes), TEMPERATURE (Show/Hide), BG OPACITY (Off/5%-50%), GLOW (Off/10%-100%)
    - **Style Variants**: Light, Light Italic, Regular, Italic (default), Bold, Bold Italic
    - **Font Sizes**: 44 sizes from 36pt to 400pt with fine-grained control
-   - **Color Schemes**: 8 options including special LCD mode with greenish-yellow background and LCD texture
+   - **Color Schemes**: 13 options including vintage displays (3 NIXIE tube variants, 2 VFD variants) and special LCD mode with greenish-yellow background and grainy texture
+   - **Vintage Display Colors**: NIXIE-warm (#ff5f1f), NIXIE-deep (#ff4e11), NIXIE-classic (#ff3c00), VFD-classic (#66fcf1), VFD-soft (#40e0d0)
+   - **LCD Mode**: Unique greenish-yellow background (#949F53) with grainy LCD texture overlay (only applied to LCD color scheme)
    - **Seconds Display**: Show full-size, -20%/-30%/-40%/-50% reduced size, OFF-Flash-Colon (2 Hz colon flash), OFF-Flash-Decimal (2 Hz decimal point flash)
    - **Weekday Display**: Off, 2 Chars, 3 Chars, Full (inline), Full Separate (on own line)
    - **Line Spacing**: 1x-5x multiplier for weekday/date line-height control
@@ -49,6 +51,7 @@ The application uses a modular ES6 module system with a robust parameter managem
    - **Font Loading**: Dynamic loading of 24 font variants (12 DSEG7 + 12 DSEG14) via @font-face
    - **Independent Sizing**: Time and date font sizes fully independent with MS Word-like point sizes
    - **Instant Updates**: All display changes occur instantly without fade transitions
+   - **Code Quality**: Refactored parameter handling using data-driven approach with configuration maps, static constants for calculations, property-based conditionals for resilience
 
 4. **Slim Analog Clock** (`clocks/4_aviation-clock.js`):
    - Aviation-style slim analog clock with PixiJS rendering
@@ -101,6 +104,8 @@ Each clock implements a standardized parameter interface:
 - **Format Support**: TTF, WOFF, and WOFF2 formats included for broad compatibility
 - **Background Segments**: "88" pattern shows all inactive segments at adjustable opacity (Off to 50%)
 - **Temperature Integration**: Weather data fetched from Open-Meteo API for Stevenage, UK
+- **Color Schemes**: 13 total colors including 7 standard colors (Red, Green, Blue, Yellow, Magenta, Cyan, White), 5 vintage display colors (3 NIXIE tube variants, 2 VFD variants), and 1 LCD mode with background texture
+- **LCD Background**: Grainy texture overlay applied only to LCD color scheme via property-based conditional checking
 
 #### Settings Persistence
 - **LocalStorage Backend**: All user preferences saved to browser's localStorage
@@ -255,12 +260,14 @@ MultiClock/
 - **Debug Logging**: Comprehensive console logging for settings persistence debugging
 - **Background Segments**: Adjustable opacity (Off to 50%) for inactive segment visualization on all color schemes
 - **Weather Integration**: Real-time temperature display with high/low via Open-Meteo API
-- **LCD Mode**: Special greenish-yellow LCD background with texture image for authentic LCD display appearance
+- **LCD Mode**: Special greenish-yellow LCD background with grainy texture image for authentic LCD display appearance
+- **Vintage Display Colors**: NIXIE tube colors (warm, deep, classic orange variants) and VFD colors (classic/soft cyan-blue) for retro aesthetics
 - **Independent Sizing**: Separate font size controls for time and date (36pt-400pt in 44 steps)
 - **Flexible Seconds**: 7 display modes including 4 reduced-size options (-20%/-30%/-40%/-50%) and 2 flashing modes (colon/decimal at 2 Hz)
 - **Weekday Formatting**: 5 display modes (Off, 2/3 chars, Full inline, Full separate line)
 - **Line Spacing Control**: 1x-5x multiplier for vertical spacing between weekday and date lines
 - **LED Glow Effect**: Adjustable text-shadow glow from Off to 100% intensity (11 levels)
 - **Instant Display Updates**: Removed fade transitions for immediate parameter changes (Clock 3)
+- **Code Refactoring (Clock 3)**: Data-driven parameter handling with configuration maps, static constants for magic numbers, property-based conditionals for maintainability and resilience to changes
 
 This architecture provides a solid foundation for adding new clock types while maintaining consistency and quality across the entire application.
