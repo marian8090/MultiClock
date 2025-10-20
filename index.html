@@ -163,6 +163,23 @@ H: Show this help</div>
                     ? savedClockIndex
                     : 0;
                 this.loadClock(initialClockIndex);
+
+                // Restore fullscreen if it was active before auto-reload
+                this.restoreFullscreenIfNeeded();
+            }
+
+            restoreFullscreenIfNeeded() {
+                const shouldRestoreFullscreen = sessionStorage.getItem('multiclock_restore_fullscreen');
+                if (shouldRestoreFullscreen === 'true') {
+                    // Clear the flag
+                    sessionStorage.removeItem('multiclock_restore_fullscreen');
+
+                    // Restore fullscreen after a short delay to ensure page is fully loaded
+                    setTimeout(() => {
+                        this.enterFullscreen();
+                        console.log('[AutoReload] Restored fullscreen mode after reload');
+                    }, 100);
+                }
             }
 
             setupBeforeUnloadHandler() {
@@ -362,9 +379,9 @@ H: Show this help</div>
         // Module scripts are deferred by default, so DOM is ready when this executes
         new MultiClock();
 
-        // Auto-reload checker - checks for updates every 30 minutes
+        // Auto-reload checker - checks for updates every 5 minutes
         (function autoReloadChecker() {
-            const CHECK_INTERVAL = 30 * 60 * 1000; // 30 minutes in milliseconds
+            const CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes in milliseconds
             let lastContentHash = null;
 
             // Simple hash function for content comparison
@@ -376,6 +393,12 @@ H: Show this help</div>
                     hash = hash & hash; // Convert to 32-bit integer
                 }
                 return hash.toString();
+            }
+
+            // Check if currently in fullscreen
+            function isFullscreen() {
+                return !!(document.fullscreenElement || document.mozFullScreenElement ||
+                    document.webkitFullscreenElement || document.msFullscreenElement);
             }
 
             // Check for updates
@@ -394,8 +417,14 @@ H: Show this help</div>
                             // First check, just store the hash
                             lastContentHash = currentHash;
                         } else if (lastContentHash !== currentHash) {
-                            // Content changed, reload the page
+                            // Content changed, save fullscreen state and reload the page
                             console.log('[AutoReload] Update detected, reloading page...');
+
+                            // Save fullscreen state before reload
+                            if (isFullscreen()) {
+                                sessionStorage.setItem('multiclock_restore_fullscreen', 'true');
+                            }
+
                             window.location.reload();
                         }
                     }
@@ -404,14 +433,14 @@ H: Show this help</div>
                 }
             }
 
-            // Initial check after 30 minutes
+            // Initial check after 5 minutes
             setTimeout(() => {
                 checkForUpdates();
-                // Then check every 30 minutes
+                // Then check every 5 minutes
                 setInterval(checkForUpdates, CHECK_INTERVAL);
             }, CHECK_INTERVAL);
 
-            console.log('[AutoReload] Auto-reload checker initialized (30-minute interval)');
+            console.log('[AutoReload] Auto-reload checker initialized (5-minute interval)');
         })();
     </script>
 </body>
