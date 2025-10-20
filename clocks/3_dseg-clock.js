@@ -1135,10 +1135,10 @@ export class DSEGClock {
             const windSpeedKnots = Math.round(windSpeedKmh * 0.539957);
             this.currentWindSpeed = windSpeedKnots.toString();
 
-            // Round wind direction to nearest 10 degrees
+            // Round wind direction to nearest 10 degrees and pad to 3 digits
             const windDirection = data.current.wind_direction_10m;
             const windDirectionRounded = Math.round(windDirection / 10) * 10;
-            this.currentWindDirection = windDirectionRounded.toString();
+            this.currentWindDirection = windDirectionRounded.toString().padStart(3, '0');
 
             // Update display immediately if weather is shown
             this.updateTemperatureDisplay();
@@ -1169,8 +1169,8 @@ export class DSEGClock {
             this.temperatureElement.textContent = newTemperatureText;
             this.temperatureElement.style.display = 'block';
 
-            // Background all-segments-on for LCD mode
-            this.backgroundTemperatureElement.textContent = '88°';
+            // Background all-segments-on for LCD mode (3 digits to handle negative temps like -13°)
+            this.backgroundTemperatureElement.textContent = '888°';
             this.backgroundTemperatureElement.style.display = 'block';
         } else if (weatherMode === 'temp_hilo') {
             // Show temperature with high/low
@@ -1185,7 +1185,7 @@ export class DSEGClock {
             this.backgroundTemperatureElement.textContent = '88°\u00A0\u00A0\u00A088°/88°';
             this.backgroundTemperatureElement.style.display = 'block';
         } else if (weatherMode === 'temp_wind') {
-            // Show temperature with wind (format: 15° 10/250)
+            // Show temperature with wind (format: 24° 8/080 or -3° 15/250)
             // Using Unicode non-breaking spaces (U+00A0) for better spacing visibility
             const newTemperatureText = `${this.currentTemperature}°\u00A0\u00A0\u00A0${this.currentWindSpeed}/${this.currentWindDirection}`;
 
@@ -1193,8 +1193,8 @@ export class DSEGClock {
             this.temperatureElement.style.display = 'block';
 
             // Background all-segments-on for LCD mode
-            // Pattern: 88°   88/888  (matching temp, wind format with all segments visible)
-            this.backgroundTemperatureElement.textContent = '88°\u00A0\u00A0\u00A088/888';
+            // Pattern: 888°   88/888  (3-digit temp for negatives, 2-digit speed, 3-digit direction)
+            this.backgroundTemperatureElement.textContent = '888°\u00A0\u00A0\u00A088/888';
             this.backgroundTemperatureElement.style.display = 'block';
         }
     }
