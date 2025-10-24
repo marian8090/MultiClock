@@ -96,7 +96,8 @@ export class DSEGClock {
             { name: 'OFF', value: 'off' },
             { name: 'TEMP', value: 'temp' },
             { name: 'TEMP+HI/LO', value: 'temp_hilo' },
-            { name: 'TEMP+WIND', value: 'temp_wind' }
+            { name: 'TEMP+WIND', value: 'temp_wind' },
+            { name: 'TEMP+HI/LO+WIND', value: 'temp_hilo_wind' }
         ];
 
         // Available background opacity levels (for all color schemes)
@@ -137,11 +138,16 @@ export class DSEGClock {
 
         // Available line spacing options
         this.lineSpacings = [
-            { name: '1x', value: 1.0 },
-            { name: '2x', value: 2.0 },
-            { name: '3x', value: 3.0 },
-            { name: '4x', value: 4.0 },
-            { name: '5x', value: 5.0 }
+            { name: '1x', value: 1.2 },
+            { name: '2x', value: 1.4 },
+            { name: '3x', value: 1.6 },
+            { name: '4x', value: 1.8 },
+            { name: '5x', value: 2.0 },
+            { name: '6x', value: 2.2 },
+            { name: '7x', value: 2.4 },
+            { name: '8x', value: 2.6 },
+            { name: '9x', value: 2.8 },
+            { name: '10x', value: 3.0 }
         ];
 
         // Parameters
@@ -480,6 +486,7 @@ export class DSEGClock {
                 letter-spacing: 0;
                 font-family: '${weekdayFontFamily}', monospace;
                 text-align: left;
+                line-height: ${lineHeight};
                 ${renderingCSS.text}
                 ${glowCSS}
                 z-index: 2;
@@ -1076,26 +1083,33 @@ export class DSEGClock {
         let newWeekdayDateText = '';
         let bgWeekdayText = '';
 
+        // Background with ~. pattern for 14-segment characters
+        // Each ~. creates one full 14-segment "8" character
+        // Always use 18 segments for consistent background width
         switch (weekdayMode) {
             case 'off':
                 newWeekdayDateText = dateString;
-                bgWeekdayText = this.generateBackground(newWeekdayDateText);
+                // Background: 18 segments
+                bgWeekdayText = this.generateBackground(18);
                 break;
             case '2chars':
                 newWeekdayDateText = `${weekday2Char}!${dateString}`;
-                bgWeekdayText = this.generateBackground(newWeekdayDateText);
+                // Background: 18 segments
+                bgWeekdayText = this.generateBackground(18);
                 break;
             case '3chars':
                 newWeekdayDateText = `${weekday3Char}!${dateString}`;
-                bgWeekdayText = this.generateBackground(newWeekdayDateText);
+                // Background: 18 segments
+                bgWeekdayText = this.generateBackground(18);
                 break;
             case 'full':
                 newWeekdayDateText = `${weekdayFull}!${dateString}`;
-                bgWeekdayText = this.generateBackground(newWeekdayDateText);
+                // Background: 18 segments
+                bgWeekdayText = this.generateBackground(18);
                 break;
             default:
                 newWeekdayDateText = dateString;
-                bgWeekdayText = this.generateBackground(newWeekdayDateText);
+                bgWeekdayText = this.generateBackground(18);
         }
 
         // Handle weekday/date
@@ -1105,9 +1119,6 @@ export class DSEGClock {
         // Update background for weekday/date
         this.backgroundWeekdayDateElement.textContent = bgWeekdayText;
         this.backgroundWeekdayDateElement.style.display = 'block';
-
-        // Store weekday/date background length for temperature line to match
-        this.weekdayDateBackgroundLength = bgWeekdayText.length;
     }
 
     startUpdate() {
@@ -1174,14 +1185,10 @@ export class DSEGClock {
         return `${sign}${absTemp}°C`;
     }
 
-    // Generate background string with ~. pattern for DSEG font
-    generateBackground(text) {
-        // Periods (.) have ZERO WIDTH in DSEG fonts, so we only count visible characters
-        // Remove all periods from the text to get the actual visible character count
-        const visibleLength = text.replace(/\./g, '').length;
-        // Create ~. pattern repeated for each visible character
-        // Each ~. displays as one segment with decimal point
-        return '~.'.repeat(visibleLength);
+    // Generate background string with ~. pattern for DSEG14 font
+    // Each ~. displays as one full 14-segment "8" character with all segments lit
+    generateBackground(count) {
+        return '~.'.repeat(count);
     }
 
     updateTemperatureDisplay() {
@@ -1200,11 +1207,9 @@ export class DSEGClock {
             this.temperatureElement.textContent = newTemperatureText;
             this.temperatureElement.style.display = 'block';
 
-            // Generate background - use max of weekday/date background length or temperature text length
-            const tempBg = this.generateBackground(newTemperatureText);
-            const weekdayBgLength = this.weekdayDateBackgroundLength || 0;
-            const finalBg = tempBg.length >= weekdayBgLength ? tempBg : tempBg + '~.'.repeat(Math.ceil((weekdayBgLength - tempBg.length) / 2));
-            this.backgroundTemperatureElement.textContent = finalBg;
+            // Background: 18 segments for consistent width
+            const tempBg = this.generateBackground(18);
+            this.backgroundTemperatureElement.textContent = tempBg;
             this.backgroundTemperatureElement.style.display = 'block';
         } else if (weatherMode === 'temp_hilo') {
             // Show temperature with high/low, all with +/- and °C
@@ -1217,11 +1222,9 @@ export class DSEGClock {
             this.temperatureElement.textContent = newTemperatureText;
             this.temperatureElement.style.display = 'block';
 
-            // Generate background - use max of weekday/date background length or temperature text length
-            const tempBg = this.generateBackground(newTemperatureText);
-            const weekdayBgLength = this.weekdayDateBackgroundLength || 0;
-            const finalBg = tempBg.length >= weekdayBgLength ? tempBg : tempBg + '~.'.repeat(Math.ceil((weekdayBgLength - tempBg.length) / 2));
-            this.backgroundTemperatureElement.textContent = finalBg;
+            // Background: 18 segments for consistent width
+            const tempBg = this.generateBackground(18);
+            this.backgroundTemperatureElement.textContent = tempBg;
             this.backgroundTemperatureElement.style.display = 'block';
         } else if (weatherMode === 'temp_wind') {
             // Show temperature with wind (format: +24°C 8/080)
@@ -1232,11 +1235,24 @@ export class DSEGClock {
             this.temperatureElement.textContent = newTemperatureText;
             this.temperatureElement.style.display = 'block';
 
-            // Generate background - use max of weekday/date background length or temperature text length
-            const tempBg = this.generateBackground(newTemperatureText);
-            const weekdayBgLength = this.weekdayDateBackgroundLength || 0;
-            const finalBg = tempBg.length >= weekdayBgLength ? tempBg : tempBg + '~.'.repeat(Math.ceil((weekdayBgLength - tempBg.length) / 2));
-            this.backgroundTemperatureElement.textContent = finalBg;
+            // Background: 18 segments for consistent width
+            const tempBg = this.generateBackground(18);
+            this.backgroundTemperatureElement.textContent = tempBg;
+            this.backgroundTemperatureElement.style.display = 'block';
+        } else if (weatherMode === 'temp_hilo_wind') {
+            // Show temperature with high/low on first line, wind on second line
+            // Using exclamation marks (!) for proper monospace spacing in DSEG fonts
+            const currentTemp = this.formatTemperature(this.currentTemperature);
+            const highTemp = this.formatTemperature(this.currentTempHigh);
+            const lowTemp = this.formatTemperature(this.currentTempLow);
+            const newTemperatureText = `${currentTemp}!!${highTemp}/${lowTemp}\n${this.currentWindSpeed}/${this.currentWindDirection}`;
+
+            this.temperatureElement.textContent = newTemperatureText;
+            this.temperatureElement.style.display = 'block';
+
+            // Background: 18 segments for both lines
+            const tempBg = `${this.generateBackground(18)}\n${this.generateBackground(18)}`;
+            this.backgroundTemperatureElement.textContent = tempBg;
             this.backgroundTemperatureElement.style.display = 'block';
         }
     }

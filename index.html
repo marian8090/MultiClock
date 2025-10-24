@@ -37,18 +37,18 @@
 
         #help-overlay {
             position: fixed;
-            top: 20px;
-            left: 20px;
+            top: 200px;
+            left: 0;
             color: #00ff00;
             font-size: 14px;
             z-index: 2000;
             font-family: 'Courier New', Courier, monospace;
-            opacity: 0.9;
             white-space: pre;
-            line-height: 1.4;
-            background: rgba(0, 0, 0, 0.7);
+            line-height: 1;
+            background: rgba(0, 0, 0, 0.3);
             padding: 8px;
-            border-radius: 4px;
+            max-width: 90vw;
+            overflow-x: hidden;
             display: none;
         }
 
@@ -62,7 +62,7 @@
     <div id="clock-container"></div>
     <div id="clock-number">1</div>
 
-    <div id="help-overlay">MultiClock Controls
+    <div id="help-overlay">
 1: U1 Clock
 2: Digital Clock
 3: DSEG Clock
@@ -70,7 +70,7 @@
 ↑↓: Navigate parameters
 ←→: Change values
 F: Toggle fullscreen
-H: Show this help</div>
+R: Reload</div>
 
     <script type="module">
         // Dynamic imports with cache busting
@@ -211,28 +211,28 @@ H: Show this help</div>
                             if (this.currentClockInstance && this.currentClockInstance.navigateParameterUp) {
                                 this.currentClockInstance.navigateParameterUp();
                             }
-                            this.hideHelp();
+                            this.showHelp();
                             break;
 
                         case 'ArrowDown':
                             if (this.currentClockInstance && this.currentClockInstance.navigateParameterDown) {
                                 this.currentClockInstance.navigateParameterDown();
                             }
-                            this.hideHelp();
+                            this.showHelp();
                             break;
 
                         case 'ArrowLeft':
                             if (this.currentClockInstance && this.currentClockInstance.changeParameterLeft) {
                                 this.currentClockInstance.changeParameterLeft();
                             }
-                            this.hideHelp();
+                            this.showHelp();
                             break;
 
                         case 'ArrowRight':
                             if (this.currentClockInstance && this.currentClockInstance.changeParameterRight) {
                                 this.currentClockInstance.changeParameterRight();
                             }
-                            this.hideHelp();
+                            this.showHelp();
                             break;
 
                         case 'f':
@@ -241,9 +241,9 @@ H: Show this help</div>
                             this.hideHelp();
                             break;
 
-                        case 'h':
-                        case 'H':
-                            this.showHelp();
+                        case 'r':
+                        case 'R':
+                            this.reloadPage();
                             break;
                     }
                 });
@@ -325,10 +325,10 @@ H: Show this help</div>
                     clearTimeout(this.helpTimeout);
                 }
 
-                // Auto-hide after 3 seconds
+                // Auto-hide after 5 seconds (matching parameter display)
                 this.helpTimeout = setTimeout(() => {
                     this.hideHelp();
-                }, 3000);
+                }, 5000);
             }
 
             hideHelp() {
@@ -339,6 +339,14 @@ H: Show this help</div>
                 }
             }
 
+            reloadPage() {
+                // Save fullscreen state before reload
+                if (document.fullscreenElement || document.mozFullScreenElement ||
+                    document.webkitFullscreenElement || document.msFullscreenElement) {
+                    sessionStorage.setItem('multiclock_restore_fullscreen', 'true');
+                }
+                window.location.reload();
+            }
 
             enterFullscreen() {
                 const element = document.documentElement;
