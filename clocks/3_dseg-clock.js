@@ -1163,6 +1163,17 @@ export class DSEGClock {
         }
     }
 
+    // Format temperature with sign and °C suffix
+    formatTemperature(temp) {
+        const tempNum = parseInt(temp);
+        if (isNaN(tempNum)) {
+            return temp; // Return as-is if not a number (e.g., '--')
+        }
+        const sign = tempNum >= 0 ? '+' : '-';
+        const absTemp = Math.abs(tempNum);
+        return `${sign}${absTemp}°C`;
+    }
+
     // Generate background string with ~. pattern for DSEG font
     generateBackground(text) {
         // Periods (.) have ZERO WIDTH in DSEG fonts, so we only count visible characters
@@ -1183,8 +1194,8 @@ export class DSEGClock {
             this.backgroundTemperatureElement.textContent = '';
             this.backgroundTemperatureElement.style.display = 'none';
         } else if (weatherMode === 'temp') {
-            // Show temperature only
-            const newTemperatureText = `${this.currentTemperature}°`;
+            // Show temperature only with +/- and °C
+            const newTemperatureText = this.formatTemperature(this.currentTemperature);
 
             this.temperatureElement.textContent = newTemperatureText;
             this.temperatureElement.style.display = 'block';
@@ -1196,9 +1207,12 @@ export class DSEGClock {
             this.backgroundTemperatureElement.textContent = finalBg;
             this.backgroundTemperatureElement.style.display = 'block';
         } else if (weatherMode === 'temp_hilo') {
-            // Show temperature with high/low (no degree symbols for HI/LO)
+            // Show temperature with high/low, all with +/- and °C
             // Using exclamation marks (!) for proper monospace spacing in DSEG fonts
-            const newTemperatureText = `${this.currentTemperature}°!!!${this.currentTempHigh}/${this.currentTempLow}`;
+            const currentTemp = this.formatTemperature(this.currentTemperature);
+            const highTemp = this.formatTemperature(this.currentTempHigh);
+            const lowTemp = this.formatTemperature(this.currentTempLow);
+            const newTemperatureText = `${currentTemp}!!${highTemp}/${lowTemp}`;
 
             this.temperatureElement.textContent = newTemperatureText;
             this.temperatureElement.style.display = 'block';
@@ -1210,9 +1224,10 @@ export class DSEGClock {
             this.backgroundTemperatureElement.textContent = finalBg;
             this.backgroundTemperatureElement.style.display = 'block';
         } else if (weatherMode === 'temp_wind') {
-            // Show temperature with wind (format: 24°!!!8/080)
+            // Show temperature with wind (format: +24°C 8/080)
             // Using exclamation marks (!) for proper monospace spacing in DSEG fonts
-            const newTemperatureText = `${this.currentTemperature}°!!!${this.currentWindSpeed}/${this.currentWindDirection}`;
+            const currentTemp = this.formatTemperature(this.currentTemperature);
+            const newTemperatureText = `${currentTemp}!!${this.currentWindSpeed}/${this.currentWindDirection}`;
 
             this.temperatureElement.textContent = newTemperatureText;
             this.temperatureElement.style.display = 'block';
