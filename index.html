@@ -154,8 +154,20 @@ R: Reload</div>
                 this.helpTimeout = null;
                 this.settingsManager = new SettingsManager();
 
+                // Touch gesture tracking
+                this.touchStartX = 0;
+                this.touchStartY = 0;
+                this.touchEndX = 0;
+                this.touchEndY = 0;
+                this.minSwipeDistance = 50; // Minimum pixels for swipe detection
+
+                // Wake lock
+                this.wakeLock = null;
+
                 this.setupEventListeners();
+                this.setupTouchListeners();
                 this.setupBeforeUnloadHandler();
+                this.requestWakeLock();
 
                 // Load last selected clock or default to 0
                 const savedClockIndex = this.settingsManager.loadSelectedClock();
@@ -247,6 +259,68 @@ R: Reload</div>
                             break;
                     }
                 });
+            }
+
+            setupTouchListeners() {
+                // Touch start - record starting position
+                document.addEventListener('touchstart', (event) => {
+                    this.touchStartX = event.changedTouches[0].screenX;
+                    this.touchStartY = event.changedTouches[0].screenY;
+                }, false);
+
+                // Touch end - detect swipe direction and execute action
+                document.addEventListener('touchend', (event) => {
+                    this.touchEndX = event.changedTouches[0].screenX;
+                    this.touchEndY = event.changedTouches[0].screenY;
+                    this.handleSwipeGesture();
+                }, false);
+            }
+
+            handleSwipeGesture() {
+                const deltaX = this.touchEndX - this.touchStartX;
+                const deltaY = this.touchEndY - this.touchStartY;
+                const absDeltaX = Math.abs(deltaX);
+                const absDeltaY = Math.abs(deltaY);
+
+                // Check if movement is below threshold (tap, not swipe)
+                if (absDeltaX < this.minSwipeDistance && absDeltaY < this.minSwipeDistance) {
+                    // Single tap - show help
+                    this.showHelp();
+                    return;
+                }
+
+                // Determine primary swipe direction (horizontal or vertical)
+                if (absDeltaX > absDeltaY) {
+                    // Horizontal swipe
+                    if (deltaX > 0) {
+                        // Swipe right - change parameter value right
+                        if (this.currentClockInstance && this.currentClockInstance.changeParameterRight) {
+                            this.currentClockInstance.changeParameterRight();
+                        }
+                        this.showHelp();
+                    } else {
+                        // Swipe left - change parameter value left
+                        if (this.currentClockInstance && this.currentClockInstance.changeParameterLeft) {
+                            this.currentClockInstance.changeParameterLeft();
+                        }
+                        this.showHelp();
+                    }
+                } else {
+                    // Vertical swipe
+                    if (deltaY > 0) {
+                        // Swipe down - navigate parameter down
+                        if (this.currentClockInstance && this.currentClockInstance.navigateParameterDown) {
+                            this.currentClockInstance.navigateParameterDown();
+                        }
+                        this.showHelp();
+                    } else {
+                        // Swipe up - navigate parameter up
+                        if (this.currentClockInstance && this.currentClockInstance.navigateParameterUp) {
+                            this.currentClockInstance.navigateParameterUp();
+                        }
+                        this.showHelp();
+                    }
+                }
             }
 
             async loadClock(index) {
@@ -346,6 +420,32 @@ R: Reload</div>
                     sessionStorage.setItem('multiclock_restore_fullscreen', 'true');
                 }
                 window.location.reload();
+            }
+
+            async requestWakeLock() {
+                // Screen Wake Lock API to prevent screen from turning off
+                if ('wakeLock' in navigator) {
+                    try {
+                        this.wakeLock = await navigator.wakeLock.request('screen');
+                        console.log('[WakeLock] Screen wake lock acquired');
+
+                        // Re-acquire wake lock when page becomes visible again
+                        document.addEventListener('visibilitychange', async () => {
+                            if (this.wakeLock !== null && document.visibilityState === 'visible') {
+                                try {
+                                    this.wakeLock = await navigator.wakeLock.request('screen');
+                                    console.log('[WakeLock] Screen wake lock re-acquired');
+                                } catch (err) {
+                                    console.warn('[WakeLock] Failed to re-acquire wake lock:', err);
+                                }
+                            }
+                        });
+                    } catch (err) {
+                        console.warn('[WakeLock] Failed to acquire wake lock:', err);
+                    }
+                } else {
+                    console.log('[WakeLock] Wake Lock API not supported');
+                }
             }
 
             enterFullscreen() {
