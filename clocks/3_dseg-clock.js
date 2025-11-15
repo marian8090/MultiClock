@@ -1156,10 +1156,9 @@ export class DSEGClock {
             const windSpeedKnots = Math.round(windSpeedKmh * 0.539957);
             this.currentWindSpeed = windSpeedKnots.toString();
 
-            // Round wind direction to nearest 10 degrees and pad to 3 digits
-            const windDirection = data.current.wind_direction_10m;
-            const windDirectionRounded = Math.round(windDirection / 10) * 10;
-            this.currentWindDirection = windDirectionRounded.toString().padStart(3, '0');
+            // Get wind direction and pad to 3 digits
+            const windDirection = Math.round(data.current.wind_direction_10m);
+            this.currentWindDirection = windDirection.toString().padStart(3, '0');
 
             // Update display immediately if weather is shown
             this.updateTemperatureDisplay();
@@ -1227,10 +1226,10 @@ export class DSEGClock {
             this.backgroundTemperatureElement.textContent = tempBg;
             this.backgroundTemperatureElement.style.display = 'block';
         } else if (weatherMode === 'temp_wind') {
-            // Show temperature with wind (format: +24°C 8/080)
+            // Show temperature with wind (format: +24°C 247/8)
             // Using exclamation marks (!) for proper monospace spacing in DSEG fonts
             const currentTemp = this.formatTemperature(this.currentTemperature);
-            const newTemperatureText = `${currentTemp}!!${this.currentWindSpeed}/${this.currentWindDirection}`;
+            const newTemperatureText = `${currentTemp}!!${this.currentWindDirection}/${this.currentWindSpeed}`;
 
             this.temperatureElement.textContent = newTemperatureText;
             this.temperatureElement.style.display = 'block';
@@ -1245,7 +1244,7 @@ export class DSEGClock {
             const currentTemp = this.formatTemperature(this.currentTemperature);
             const highTemp = this.formatTemperature(this.currentTempHigh);
             const lowTemp = this.formatTemperature(this.currentTempLow);
-            const newTemperatureText = `${currentTemp}!!${highTemp}/${lowTemp}\n${this.currentWindSpeed}/${this.currentWindDirection}`;
+            const newTemperatureText = `${currentTemp}!!${highTemp}/${lowTemp}\n${this.currentWindDirection}/${this.currentWindSpeed}`;
 
             this.temperatureElement.textContent = newTemperatureText;
             this.temperatureElement.style.display = 'block';
